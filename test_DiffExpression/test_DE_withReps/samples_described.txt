@@ -1,0 +1,5 @@
+cond1	1A
+cond1	1B
+
+cond2	2A
+cond2	2B

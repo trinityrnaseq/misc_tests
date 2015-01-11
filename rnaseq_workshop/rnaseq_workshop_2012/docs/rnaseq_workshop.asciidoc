@@ -1,0 +1,18 @@
+= RNA-Seq Workshop =
+
+Do you want to learn the basics of how to analyze RNA-Seq data, including genome-based and genome-free transcript reconstruction and differential expression analysis?  Below, we provide materials to help get you started. A VirtualBox virtual machine image is provided that includes several popular tools for analyzing RNA-Seq, including Tuxedo for genome-based and Trinity for genome-free RNA-Seq studies, and small sample (simulated) RNA-Seq data sets.  Hands-on tutorials are provided to guide users in a step-by-step analysis of these data. Note, the only purpose of these simulated data is to give the user hands-on experience in using the various analysis tools and be sufficiently small in size such that the data can be processed on an average desktop computer in a small amount of time (minutes rather than hours).  Future work may have an increased focus on learning interesting biology from real data sets, in addition to familarizing users with use of these applications.
+
+To get started, you must first install http://virtualbox.org[VirtualBox] and import the ftp://ftp.broad.mit.edu/pub/users/bhaas/rnaseq_workshop/Ubuntu_RNASeqWorkshop.ova[Ubuntu Linux image provided] that's preinstalled with the required data and software.  A http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/virtualbox_setup.pdf/download[basic installation guide] with screenshots is provided.  VirtualBox should allow a user to experiment with this Ubuntu Linux from within their own operating system, including from Mac or Windows operating systems.
+
+The accompanying Trinity and Tuxedo walk-throughs are available from the Trinity ftp site at: http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/[http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/].
+
+
+In summary, these are the requirements:
+
+- Install Virtualbox from http://virtualbox.org[http://virtualbox.org]
+- Download the ftp://ftp.broad.mit.edu/pub/users/bhaas/rnaseq_workshop/Ubuntu_RNASeqWorkshop.ova[Ubuntu Linux image with pre-installed software and data].
+- Install the Ubuntu image following http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/virtualbox_setup.pdf/download[these instructions].
+- Run through the http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/Trinity_workshop_activities.pdf/download[Trinity Tutorial] and/or the http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/Tuxedo_workshop_activities.pdf/download[Tuxedo Tutorial] provided.
+- The http://sourceforge.net/projects/trinityrnaseq/files/misc/RNASEQ_WORKSHOP/rnaseq_workshop_slides.pdf/download[workshop slides] are also available.
+
+

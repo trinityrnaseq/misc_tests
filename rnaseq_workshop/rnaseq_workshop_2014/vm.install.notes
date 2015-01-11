@@ -1,0 +1,65 @@
+sudo apt-get update
+sudo apt-get install libxml2-dev
+sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install subversion
+sudo apt-get install tcsh
+sudo apt-get install emacs24
+# sudo apt-get install openjdk-7-jre-headless
+sudo apt-get install default-jre
+
+----
+.bash_aliases
+alias e='emacs'
+alias c='cat'
+alias m='less'
+
+export TRINITY_HOME=
+export IGV=
+
+----
+
+R:
+    source("http://bioconductor.org/biocLite.R")
+    biocLite()
+    biocLite("cummeRbund")
+    biocLite("ctc")
+    biocLite("ape")
+    biocLite("Biobase")
+    install.packages("gtools")
+    gdata
+    caTools
+    install.packages("gplots_2.11.0.tar.gz")
+
+svn checkout svn://svn.code.sf.net/p/trinityrnaseq/code/trunk trinityrnaseq-code
+svn checkout svn://svn.code.sf.net/p/trinityrnaseq/code/misc_tests/rnaseq_workshop_data rnaseq_workshop_data
+
+
+mkdir software/
+
+Bowtie-1:
+wget 
+http://sourceforge.net/projects/bowtie-bio/files/bowtie/1.0.0/bowtie-1.0.0-linux-x86_64.zip/download
+-O bowtie-1.zip
+
+Bowtie-2:
+http://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.1.0/bowtie2-2.1.0-linux-x86_64.zip/download
+
+Tophat2:
+http://tophat.cbcb.umd.edu/downloads/tophat-2.0.9.Linux_x86_64.tar.gz
+
+Cufflinks:
+http://cufflinks.cbcb.umd.edu/downloads/cufflinks-2.1.1.Linux_x86_64.tar.gz
+
+
+IGV:
+http://www.broadinstitute.org/igv/projects/downloads/IGV_2.3.12.zip
+
+GenomeView:
+    
+
+GMAP:
+http://research-pub.gene.com/gmap/src/gmap-gsnap-2013-07-20.tar.gz
+
+Samtools:
+http://sourceforge.net/projects/samtools/files/samtools/0.1.19/samtools-0.1.19.tar.bz2/download
+

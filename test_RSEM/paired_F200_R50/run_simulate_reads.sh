@@ -1,0 +1,1 @@
+../../simulate_reads_for_EM_test/simulate_reads_for_transcriptome_via_genome.pl --gff3 ../mouse.altSpliceExamples.gff3 --genome ../mouse.altSpliceExamples.genome --frag_length 200 --read_length 50 --reads_per_transcript known_expr_vals.txt --paired

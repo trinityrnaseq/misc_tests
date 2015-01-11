@@ -1,0 +1,1 @@
+./runPrep.pl -R ./ENST00000282478_7_DSPP.fa --ref_trans_only -O FL_wReads --bfly_jar /Users/bhaas/garb/Bfly.jar 

@@ -1,0 +1,7 @@
+
+from Chevreux, Bastien  (bastien.chevreux@dsm.com)   3-7-2012
+
+...
+As first transcript I took a sequence of 1200 bp and created rather artificial paired-end reads from this (equidistant starts, no sequencing errors inserted, 100bp reads, template length 200 bp, coverage > 100x). As second transcript I mutated the sequence by changing one base every 60bp and also created paired-end reads from this. I then proceeded to sort the artificial reads into “left” and “right” files; the resulting data set is attached to this mail (and also contains the two test sequences).
+...
+

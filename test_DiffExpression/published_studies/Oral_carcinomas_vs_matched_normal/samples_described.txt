@@ -1,0 +1,6 @@
+normal	8N
+tumor	8T
+normal	33N
+tumor	33T
+normal	51N
+tumor	51T

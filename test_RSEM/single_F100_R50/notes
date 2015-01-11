@@ -1,0 +1,1 @@
+../../../simulate_reads_for_transcriptome_via_genome.pl --gff3 ../mouse.altSpliceExamples.gff3 --genome ../mouse.altSpliceExamples.genome --frag_length 100 --read_length 50 --reads_per_transcript test.vals

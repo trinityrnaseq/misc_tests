@@ -1,0 +1,11 @@
+Kidney	R1L1Kidney
+Kidney	R2L2Kidney
+Kidney	R1L3Kidney
+Kidney	R2L6Kidney
+Kidney	R1L7Kidney
+
+Liver	R1L2Liver
+Liver	R2L3Liver
+Liver	R1L4Liver
+Liver	R1L6Liver
+Liver	R1L8Liver

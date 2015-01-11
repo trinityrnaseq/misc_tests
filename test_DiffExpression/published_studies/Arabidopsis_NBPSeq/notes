@@ -1,0 +1,12 @@
+data from NBPSeq package and:
+
+PLoS One. 2011;6(10):e25279. doi: 10.1371/journal.pone.0025279. Epub 2011 Oct 6.
+GENE-counter: a computational pipeline for the analysis of RNA-Seq data for gene expression differences.
+Cumbie JS, Kimbrel JA, Di Y, Schafer DW, Wilhelm LJ, Fox SE, Sullivan CM, Curzon AD, Carrington JC, Mockler TC, Chang JH.
+Source
+Department of Botany and Plant Pathology, Oregon State University, Corvallis, Oregon, United States of America.
+Abstract
+GENE-counter is a complete Perl-based computational pipeline for analyzing RNA-Sequencing (RNA-Seq) data for differential gene expression. In addition to its use in studying transcriptomes of eukaryotic model organisms, GENE-counter is applicable for prokaryotes and non-model organisms without an available genome reference sequence. For alignments, GENE-counter is configured for CASHX, Bowtie, and BWA, but an end user can use any Sequence Alignment/Map (SAM)-compliant program of preference. To analyze data for differential gene expression, GENE-counter can be run with any one of three statistics packages that are based on variations of the negative binomial distribution. The default method is a new and simple statistical test we developed based on an over-parameterized version of the negative binomial distribution. GENE-counter also includes three different methods for assessing differentially expressed features for enriched gene ontology (GO) terms. Results are transparent and data are systematically stored in a MySQL relational database to facilitate additional analyses as well as quality assessment. We used next generation sequencing to generate a small-scale RNA-Seq dataset derived from the heavily studied defense response of Arabidopsis thaliana and used GENE-counter to process the data. Collectively, the support from analysis of microarrays as well as the observed and substantial overlap in results from each of the three statistics packages demonstrates that GENE-counter is well suited for handling the unique characteristics of small sample sizes and high variability in gene counts.
+PMID: 21998647 [PubMed - indexed for MEDLINE] PMCID: PMC3188579 Free PMC Article
+
+
