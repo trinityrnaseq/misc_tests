@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../trunk/PerlLib/");
+use lib ("$ENV{TRINITY_HOME}/PerlLib/");
 use Fasta_reader;
 use Cwd;
 use Data::Dumper;
