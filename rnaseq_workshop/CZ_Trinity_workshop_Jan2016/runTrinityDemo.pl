@@ -41,9 +41,6 @@ if ($help_flag) {
 my $trinity_dir = $ENV{TRINITY_HOME} or die "Error, need env var TRINITY_HOME set to Trinity installation directory";
 $ENV{PATH} .= ":$trinity_dir";  ## adding it to our PATH setting.
 
-unless (defined $ENV{IGV}) {
-    die "Error, must set env var for IGV path";
-}
 
 my $OS_type = `uname`;
 
@@ -52,6 +49,7 @@ my $OS_type = `uname`;
 my @tools = qw (Trinity
     bowtie
     samtools
+    igv.sh
 );
  
 {
@@ -145,6 +143,7 @@ my $run_Trinity_cmd = "$trinity_dir/Trinity --seqType fq "
 
 open (my $ofh, ">samples.txt") or die "Error, cannot write to file samples.txt";
 my @rsem_result_files;
+my @bam_files;
 
 foreach my $condition (sort keys %samples) {
     
@@ -168,11 +167,12 @@ foreach my $condition (sort keys %samples) {
             . " --left $left_fq --right $right_fq "
             . " --transcripts trinity_out_dir/Trinity.fasta "
             . " --output_prefix $sample --est_method RSEM "
-            . " --aln_method bowtie --trinity_mode --prep_reference"
+            . " --aln_method bowtie --trinity_mode --prep_reference --coordsort_bam "
             . " --output_dir $output_dir";
         
         &process_cmd($align_estimate_command, "$checkpoints_dir/$sample.align_estimate.ok");
         
+        push (@bam_files, "$output_dir/$sample.bowtie.csorted.bam");
         
         # look at the output
         &process_cmd("head $rsem_result_file", "$checkpoints_dir/head.$sample.rsem.ok");
@@ -201,14 +201,17 @@ close $ofh; # samples.txt
 
 &show("ExN50.stats.plot.pdf");
 
+## Examine read alignments in IGV
+&process_cmd("igv.sh -g trinity_out_dir/Trinity.fasta " . join(",", @bam_files), "$checkpoints_dir/igv_trinity_reads.ok");
+
+
+
+##############
+## DE analysis
+##############
 
 ## make a samples file
 &process_cmd("cat samples.txt", "$checkpoints_dir/examine_samples_txt.ok");
-
-
-
-
-
 
 ## run edgeR
 &process_cmd("$trinity_dir/Analysis/DifferentialExpression/run_DE_analysis.pl --matrix Trinity_trans.counts.matrix --samples_file samples.txt --method edgeR --output edgeR", "$checkpoints_dir/run.edgeR.ok");
