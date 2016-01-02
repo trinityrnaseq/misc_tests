@@ -96,7 +96,7 @@ my @tools = qw (Trinity
 
 
 # run Trinity.
-&process_cmd("$trinity_dir/Trinity --seqType fq --SS_lib_type RF --left ALL.LEFT.fq --right ALL.RIGHT.fq --CPU 4 --JM 1G") unless (-s "trinity_out_dir/Trinity.fasta");
+&process_cmd("$trinity_dir/Trinity --seqType fq --SS_lib_type RF --left ALL.LEFT.fq --right ALL.RIGHT.fq --CPU 4 --max_memory 1G") unless (-s "trinity_out_dir/Trinity.fasta");
 
 # Examine top of Trinity.fasta file
 &process_cmd("head trinity_out_dir/Trinity.fasta");
