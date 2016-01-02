@@ -191,9 +191,24 @@ close $ofh; # samples.txt
 ## Look at the expression matrix:
 &process_cmd("head -n20 Trinity_trans.TMM.EXPR.matrix", "$checkpoints_dir/head.expr.matrix.ok");
 
+## Examine the E90N50 statistic
+&process_cmd("$trinity_dir//util/misc/contig_ExN50_statistic.pl  Trinity_trans.TMM.EXPR.matrix trinity_out_dir/Trinity.fasta > ExN50.stats", "$checkpoints_dir/ExNstats.ok");
+
+&process_cmd("cat ExN50.stats", "$checkpoints_dir/cat_ExNstats.ok");
+
+## Plot the values
+&process_cmd("$trinity_dir/util/misc/plot_ExN50_statistic.Rscript ExN50.stats", "$checkpoints_dir/plot_ExN50.ok");
+
+&show("ExN50.stats.plot.pdf");
+
 
 ## make a samples file
 &process_cmd("cat samples.txt", "$checkpoints_dir/examine_samples_txt.ok");
+
+
+
+
+
 
 ## run edgeR
 &process_cmd("$trinity_dir/Analysis/DifferentialExpression/run_DE_analysis.pl --matrix Trinity_trans.counts.matrix --samples_file samples.txt --method edgeR --output edgeR", "$checkpoints_dir/run.edgeR.ok");
