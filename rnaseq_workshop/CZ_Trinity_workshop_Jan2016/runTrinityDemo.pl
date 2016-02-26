@@ -41,9 +41,6 @@ if ($help_flag) {
 my $trinity_dir = $ENV{TRINITY_HOME} or die "Error, need env var TRINITY_HOME set to Trinity installation directory";
 $ENV{PATH} .= ":$trinity_dir";  ## adding it to our PATH setting.
 
-unless (defined $ENV{IGV}) {
-    die "Error, must set env var for IGV path";
-}
 
 my $OS_type = `uname`;
 
@@ -51,12 +48,10 @@ my $OS_type = `uname`;
 
 my @tools = qw (Trinity
     bowtie
-    tophat
     samtools
-    gmap_build
-    gmap
+    igv.sh
 );
-
+ 
 {
     my $missing_tool_flag = 0;
     foreach my $tool (@tools) {
@@ -77,7 +72,7 @@ my @tools = qw (Trinity
 
 { 
     ## unzip the gzipped files.
-    foreach my $file (<*.gz>) {
+    foreach my $file (<data/*.gz>) {
         my $unzipped_file = $file;
         $unzipped_file =~ s/\.gz//;
         unless (-s $unzipped_file) {
@@ -89,123 +84,183 @@ my @tools = qw (Trinity
     }
 }
 
+my $checkpoints_dir = $FindBin::Bin . "/__TrinDemo_checkpoints_dir";
+unless (-d $checkpoints_dir) {
+    mkdir $checkpoints_dir or die "Error, cannot mkdir $checkpoints_dir";
+}
 
-## create combined fq files
-&process_cmd("cat Sp_ds.left.fq Sp_hs.left.fq Sp_log.left.fq Sp_plat.left.fq > ALL.LEFT.fq") unless (-s "ALL.LEFT.fq");
-&process_cmd("cat Sp_ds.right.fq Sp_hs.right.fq Sp_log.right.fq  Sp_plat.right.fq > ALL.RIGHT.fq") unless (-s "ALL.RIGHT.fq");
+
+my %samples = ( 
+    'GSNO' => {
+        'GSNO_SRR1582646' => [ 'data/GSNO_SRR1582646_1.fastq',
+                               'data/GSNO_SRR1582646_2.fastq' ],
+        'GSNO_SRR1582647' => [ 'data/GSNO_SRR1582647_1.fastq',
+                               'data/GSNO_SRR1582647_2.fastq' ],
+        'GSNO_SRR1582648' => [ 'data/GSNO_SRR1582648_1.fastq',
+                               'data/GSNO_SRR1582648_2.fastq' ],
+    },
+    
+    'WT' => {
+        'wt_SRR1582649' => [ 'data/wt_SRR1582649_1.fastq',
+                             'data/wt_SRR1582649_2.fastq' ],
+        'wt_SRR1582650' => [ 'data/wt_SRR1582650_1.fastq',
+                             'data/wt_SRR1582650_2.fastq' ],
+        'wt_SRR1582651' => [ 'data/wt_SRR1582651_1.fastq',
+                             'data/wt_SRR1582651_2.fastq' ]
+    } 
+    
+    );
 
 
+##############
 # run Trinity.
-&process_cmd("$trinity_dir/Trinity --seqType fq --SS_lib_type RF --left ALL.LEFT.fq --right ALL.RIGHT.fq --CPU 4 --max_memory 1G") unless (-s "trinity_out_dir/Trinity.fasta");
+
+my ($left_fq_files_aref, $right_fq_files_aref) = &get_fq_files_listings(%samples);
+
+my $run_Trinity_cmd = "$trinity_dir/Trinity --seqType fq "
+    . " --left " . join(",", @$left_fq_files_aref)
+    . " --right " . join(",", @$right_fq_files_aref) 
+    . " --CPU 4 --max_memory 2G --min_contig_length 150 "; 
+
+
+&process_cmd($run_Trinity_cmd, "$checkpoints_dir/trinity.ok");
+
+# count the number of transcripts assembled.
+&process_cmd("grep '>' trinity_out_dir/Trinity.fasta | wc -l ", "$checkpoints_dir/count_trans.ok");
 
 # Examine top of Trinity.fasta file
-&process_cmd("head trinity_out_dir/Trinity.fasta");
-
+&process_cmd("head trinity_out_dir/Trinity.fasta", "$checkpoints_dir/head_trinity.ok");
 
 # Get Trinity stats:
-&process_cmd("$trinity_dir/util/TrinityStats.pl trinity_out_dir/Trinity.fasta");
-
-## run gmap
-unless (-s "trinity_gmap.sam" && -s "trinity_gmap.bam") {
-    &process_cmd("gmap_build -d genome -D . -k 13 genome.fa");
-    &process_cmd("gmap -n 0 -D . -d genome trinity_out_dir/Trinity.fasta -f samse > trinity_gmap.sam");
-    
-    ## convert to bam file format
-    &process_cmd("samtools view -Sb trinity_gmap.sam > trinity_gmap.bam");
-    &process_cmd("samtools sort trinity_gmap.bam trinity_gmap");
-    &process_cmd("samtools index trinity_gmap.bam");
-}
-
-
-## align the rna-seq reads against the genome, too, for comparison 
-unless (-s "tophat_out/accepted_hits.bam") {
-    &process_cmd("bowtie-build genome.fa genome");
-    &process_cmd("tophat -I 300 -i 20 --bowtie1 genome ALL.LEFT.fq ALL.RIGHT.fq");
-    &process_cmd("samtools index tophat_out/accepted_hits.bam");
-}
-
-## view using genomeview:
-# use IGV
-eval {
-    my $cmd = "java -Xmx2G -jar $ENV{IGV}/igv.jar -g `pwd`/genome.fa `pwd`/genes.bed,`pwd`/tophat_out/accepted_hits.bam,`pwd`/trinity_gmap.bam";
-    if ($AUTO_MODE) {
-        $cmd .= " & ";
-    }
-    &process_cmd($cmd);
-};
+&process_cmd("$trinity_dir/util/TrinityStats.pl trinity_out_dir/Trinity.fasta", "$checkpoints_dir/trin_stats.ok");
 
 
 ###################################
 ## Abundance estimation using RSEM
 ###################################
 
-my @samples = ("Sp_ds", "Sp_hs", "Sp_log", "Sp_plat");
+# also, write the samples.txt file
+
+open (my $ofh, ">samples.txt") or die "Error, cannot write to file samples.txt";
 my @rsem_result_files;
+my @bam_files;
 
-foreach my $sample (@samples) {
-
-    my $rsem_result_file = "$sample.isoforms.results";
-    push (@rsem_result_files, $rsem_result_file);
+foreach my $condition (sort keys %samples) {
     
-    unless (-s $rsem_result_file) {
+    my $samples_href = $samples{$condition};
+    
+    foreach my $sample (keys %$samples_href) {
         
-        &process_cmd("$trinity_dir/util/align_and_estimate_abundance.pl --seqType fq --left $sample.left.fq --right $sample.right.fq --transcripts trinity_out_dir/Trinity.fasta --output_prefix $sample --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference");
+        print $ofh join("\t", $condition, $sample) . "\n";
         
+        my $replicates_aref = $samples_href->{$sample};
+        
+        my ($left_fq, $right_fq) = @{$replicates_aref};
+        
+        my $output_dir = "$sample.RSEM";
+        
+        my $rsem_result_file = "$output_dir/$sample.isoforms.results";
+        push (@rsem_result_files, $rsem_result_file);
+        
+        
+        my $align_estimate_command = "$trinity_dir/util/align_and_estimate_abundance.pl --seqType fq "
+            . " --left $left_fq --right $right_fq "
+            . " --transcripts trinity_out_dir/Trinity.fasta "
+            . " --output_prefix $sample --est_method RSEM "
+            . " --aln_method bowtie --trinity_mode --prep_reference --coordsort_bam "
+            . " --output_dir $output_dir";
+        
+        &process_cmd($align_estimate_command, "$checkpoints_dir/$sample.align_estimate.ok");
+        
+        push (@bam_files, "$output_dir/$sample.bowtie.csorted.bam");
+        
+        # look at the output
+        &process_cmd("head $rsem_result_file", "$checkpoints_dir/head.$sample.rsem.ok");
     }
     
-    if ($sample eq "Sp_ds") {
-        &process_cmd("head Sp_ds.isoforms.results");
-    }
     
-
 }
+close $ofh; # samples.txt
 
-## generate matrix of counts:
-&process_cmd("$trinity_dir/util/abundance_estimates_to_matrix.pl --est_method RSEM --out_prefix Trinity_trans @rsem_result_files");
+## generate matrix of counts and perform TMM normalization
+&process_cmd("$trinity_dir/util/abundance_estimates_to_matrix.pl --est_method RSEM --out_prefix Trinity_trans @rsem_result_files", "$checkpoints_dir/counts_matrix.ok");
 
-## get trans lengths.
-&process_cmd("cat Sp_ds.isoforms.results | cut -f1,3,4 > trans_lengths.txt");
+## Look at the counts matrix
+&process_cmd("head -n20 Trinity_trans.counts.matrix", "$checkpoints_dir/head.counts.matrix.ok");
+
+## Look at the expression matrix:
+&process_cmd("head -n20 Trinity_trans.TMM.EXPR.matrix", "$checkpoints_dir/head.expr.matrix.ok");
+
+## Examine the E90N50 statistic
+&process_cmd("$trinity_dir//util/misc/contig_ExN50_statistic.pl  Trinity_trans.TMM.EXPR.matrix trinity_out_dir/Trinity.fasta > ExN50.stats", "$checkpoints_dir/ExNstats.ok");
+
+&process_cmd("cat ExN50.stats", "$checkpoints_dir/cat_ExNstats.ok");
+
+## Plot the values
+&process_cmd("$trinity_dir/util/misc/plot_ExN50_statistic.Rscript ExN50.stats", "$checkpoints_dir/plot_ExN50.ok");
+
+&show("ExN50.stats.plot.pdf");
+
+## Examine read alignments in IGV
+&process_cmd("igv.sh -g trinity_out_dir/Trinity.fasta " . join(",", @bam_files), "$checkpoints_dir/igv_trinity_reads.ok");
+
+
+
+##############
+## DE analysis
+##############
+
+## make a samples file
+&process_cmd("cat samples.txt", "$checkpoints_dir/examine_samples_txt.ok");
 
 ## run edgeR
-&process_cmd("$trinity_dir/Analysis/DifferentialExpression/run_DE_analysis.pl --matrix Trinity_trans.counts.matrix --method edgeR --output edgeR") unless (-d "edgeR");
+&process_cmd("$trinity_dir/Analysis/DifferentialExpression/run_DE_analysis.pl --matrix Trinity_trans.counts.matrix --samples_file samples.txt --method edgeR --output edgeR", "$checkpoints_dir/run.edgeR.ok");
+
+# take a look at what edgeR generated:
+&process_cmd("ls -ltr edgeR/", "$checkpoints_dir/ls.edgeR.dir.ok");
 
 
-&process_cmd("ls edgeR/");
-&process_cmd("head edgeR/Trinity_trans.counts.matrix.Sp_log_vs_Sp_plat.edgeR.DE_results");
+&process_cmd("head edgeR/Trinity_trans.counts.matrix.GSNO_vs_WT.edgeR.DE_results", "$checkpoints_dir/head.edgeR.DE_results.ok");
 
-&show("edgeR/Trinity_trans.counts.matrix.Sp_log_vs_Sp_plat.edgeR.DE_results.MA_n_Volcano.pdf");
-
-&process_cmd("sed '1,1d' edgeR/Trinity_trans.counts.matrix.Sp_log_vs_Sp_plat.edgeR.DE_results | awk '{ if (\$5 <= 0.05) print;}' | wc -l");
+&show("edgeR/Trinity_trans.counts.matrix.GSNO_vs_WT.edgeR.DE_results.MA_n_Volcano.pdf");
 
 
-## run TMM normalization:
-&process_cmd("$trinity_dir/Analysis/DifferentialExpression/run_TMM_normalization_write_FPKM_matrix.pl --matrix Trinity_trans.counts.matrix --lengths trans_lengths.txt");
+eval {
+    &process_cmd("cd edgeR", "$checkpoints_dir/cd.edgeR.ok");
+};
 
-chdir("edgeR") or die $!;
+# now do it in the script. :)
+chdir("edgeR") or die "Error, could not cd to edgeR/"; 
+print STDERR "\n ** Note: if you see an error message above about not being able to cd, just ignore it... it's a weird behavior of this demo script. Rest assured we've 'cd edgeR' just fine.   :)\n\n";
 
-&process_cmd("$trinity_dir/Analysis/DifferentialExpression/analyze_diff_expr.pl --matrix ../Trinity_trans.counts.matrix.TMM_normalized.FPKM -P 1e-3 -C 2") unless (-s "diffExpr.P0.001_C2.matrix.heatmap.pdf");
+&process_cmd("$trinity_dir/Analysis/DifferentialExpression/analyze_diff_expr.pl --matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt -P 1e-3 -C 2",
+             "$checkpoints_dir/analyze_diff_expr.ok");
 
 
-&process_cmd("wc -l diffExpr.P1e-3_C2.matrix"); # number of DE transcripts + 1
+&process_cmd("wc -l diffExpr.P1e-3_C2.matrix", "$checkpoints_dir/wc_diff_expr_matrix.ok"); # number of DE transcripts + 1
 
+&show("diffExpr.P1e-3_C2.matrix.log2.centered.genes_vs_samples_heatmap.pdf");
 
-if ($OS_type =~ /linux/i) {
-    &show("diffExpr.P1e-3_C2.matrix.log2.centered.genes_vs_samples_heatmap.pdf");
-}
-else {
-    # mac 
-    &show("diffExpr.P1e-3_C2.matrix.log2.centered.genes_vs_samples_heatmap.pdf\[0\]");
-}
-
-&process_cmd("$trinity_dir/Analysis/DifferentialExpression/define_clusters_by_cutting_tree.pl --Ptree 60 -R diffExpr.P1e-3_C2.matrix.RData");
+&process_cmd("$trinity_dir/Analysis/DifferentialExpression/define_clusters_by_cutting_tree.pl --Ptree 60 -R diffExpr.P1e-3_C2.matrix.RData",
+             "$checkpoints_dir/cut_clusters_tree.ok");
 &show("diffExpr.P1e-3_C2.matrix.RData.clusters_fixed_P_60/my_cluster_plots.pdf");
+
+print STDERR "\n\n\tDemo complete.  Congratulations!  :)\n\n\n\n";
+
 
 exit(0);
 
 ####
 sub process_cmd {
-    my ($cmd) = @_;
+    my ($cmd, $checkpoint) = @_;
 
+    unless ($checkpoint) {
+        die "Error, need checkpoint file defined";
+    }
+    
+    if (-e $checkpoint) { return; }
+
+    
     unless ($AUTO_MODE) {
         
         my $response = "";
@@ -232,6 +287,8 @@ sub process_cmd {
     if ($ret) {
         die "Error, cmd: $cmd died with ret $ret";
     }
+
+    system("touch $checkpoint");
     
     return;
 }
@@ -243,19 +300,43 @@ sub show {
     my $cmd;
 
     if ($OS_type =~ /linux/i) {
-        ## use evince
-        $cmd = "evince $image";
+        ## use xpdf
+        $cmd = "xpdf $image";
     }
     else {
         ## rely on ImageMagick:
-        $cmd = "display -background white -flatten $image";
+        $cmd = "open $image";
     }
     
     if ($AUTO_MODE) {
         $cmd .= " & ";
     }
     
-    &process_cmd($cmd);
+    &process_cmd($cmd, "$checkpoints_dir/view." . basename($image) . ".ok");
 
     return;
 }
+
+
+
+####
+sub get_fq_files_listings {
+    my (%samples) = @_;
+    
+    my @left_fq_files;
+    my @right_fq_files;
+
+    foreach my $condition_fq_lists_href (values %samples) {
+        
+        foreach my $replicates_fq_lists_aref (values %$condition_fq_lists_href) {
+            
+            my ($left_fq, $right_fq) = @$replicates_fq_lists_aref;
+            push (@left_fq_files, "$left_fq");
+            push (@right_fq_files, "$right_fq");
+        }
+    }
+
+    return(\@left_fq_files, \@right_fq_files);
+}
+
+
