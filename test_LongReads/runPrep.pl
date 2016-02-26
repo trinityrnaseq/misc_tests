@@ -181,7 +181,7 @@ unless ($ref_trans_fa && $BFLY_JAR) {
 
 
 unless ($ENV{TRINITY_HOME}) {
-    $ENV{TRINITY_HOME} = "$FindBin::Bin/../../trunk/";
+    $ENV{TRINITY_HOME} = "$FindBin::Bin/../../trinityrnaseq/";
 }
 
 my $reconstructions_log_file = "$OUT_DIR.reconstruction_summary.txt";

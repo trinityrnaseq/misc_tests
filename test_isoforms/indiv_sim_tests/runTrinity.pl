@@ -65,13 +65,13 @@ foreach my $file (@target_files) {
     my $trinity_out = "$trin_outdir/Trinity.fasta";
     unless (-s $trinity_out) {
         # avoid rerunning it.
-        my $cmd = "../../../trunk/Trinity -o $trin_outdir --single $file --seqType fa --JM 1G  --SS_lib_type FR --left $file.left.simPE.fa --right $file.right.simPE.fa";
+        my $cmd = "../../../trinityrnaseq/Trinity --output $trin_outdir --seqType fa --max_memory 1G  --SS_lib_type FR --left $file.left.simPE.fa --right $file.right.simPE.fa --no_cleanup --trinity_complete";
         print $ofh "$cmd\n";
     }
 
     my $trin_blat_outdir = "$outdir/trin_blat";
     unless (-d $trin_blat_outdir) {
-        my $align_command = "$FindBin::Bin/../../../trunk/util/misc/BLAT_to_SAM.pl  --single $trinity_out --seqType fa --num_top_hits 1 --target $file -o $trin_blat_outdir";
+        my $align_command = "../../../trinityrnaseq/util/misc/BLAT_to_SAM.pl  --single $trinity_out --seqType fa --num_top_hits 1 --target $file -o $trin_blat_outdir";
         push (@align_commands, $align_command);
         
         
@@ -85,7 +85,7 @@ close $ofh;
 my $cmd = "ParaFly -c $trin_cmds_file -CPU $num_threads";
 &process_cmd($cmd) if (-s $trin_cmds_file);
 
-&process_cmd("find sim_data/ -regex \".*allProbPaths.fasta\" | ../../../trunk/util/support_scripts/GG_trinity_accession_incrementer.pl > trin.fasta");
+&process_cmd("find sim_data/ -regex \".*allProbPaths.fasta\" | ../../../trinityrnaseq/util/support_scripts/GG_partitioned_trinity_aggregator.pl SIM > trin.fasta");
 
 
 ## align the fasta back to the reference:

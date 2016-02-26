@@ -16,7 +16,7 @@ main: {
     my $REQUIRE_PROPER_PAIRS = 1;
     my $INCLUDE_VOLCANO_SPREAD = 1;
     
-    my $cmd = "../../../trunk/util/misc/run_read_simulator_per_fasta_entry.pl $refSeqs_file $REQUIRE_PROPER_PAIRS $INCLUDE_VOLCANO_SPREAD";
+    my $cmd = "../../../trinityrnaseq/util/misc/run_read_simulator_per_fasta_entry.pl $refSeqs_file $REQUIRE_PROPER_PAIRS $INCLUDE_VOLCANO_SPREAD";
     &process_cmd($cmd);
     
     ## get list of reads
