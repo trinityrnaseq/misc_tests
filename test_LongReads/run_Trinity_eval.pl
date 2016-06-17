@@ -204,12 +204,12 @@ main: {
     
 
 
-    my ($num_FL, $num_entries) = &execute_seq_pipe($ref_trans_fa);
+    my ($num_FL, $num_entries, $num_transcripts) = &execute_seq_pipe($ref_trans_fa);
     
     
     open (my $ofh, ">audit.txt") or die $!;
     my $captured_all = ($num_FL == $num_entries) ? "YES" : "NO";
-    my $summary = join("\t", $ref_trans_fa, $num_FL, $num_entries, $captured_all) . "\n";
+    my $summary = join("\t", $ref_trans_fa, $num_FL, $num_entries, $num_transcripts, $captured_all) . "\n";
     print $ofh $summary;
     print $summary;
     close $ofh;
@@ -369,7 +369,7 @@ sub execute_seq_pipe {
     }
     
 
-    return ($num_FL, $num_entries);
+    return ($num_FL, $num_entries, $num_transcripts);
 
 }
 
@@ -386,41 +386,3 @@ sub process_cmd {
 
     return;
 }
-    
-####
-sub reorganize_fasta_seqs {
-    my ($fasta_seqs_href, $by_gene_flag, $restrict_to_acc) = @_;
-
-    my %reorg_fasta;
-
-    foreach my $acc (sort keys %$fasta_seqs_href) {
-        
-        my $seq = uc $fasta_seqs_href->{$acc};
-
-        my $key = $acc;
-        if ($by_gene_flag) {
-            my ($trans, $gene) = split(/;/, $acc);
-            unless ($gene) {
-                confess "Error, no gene ID extracted from $acc ";
-            }
-            $key = $gene;
-        }
-
-        if ($restrict_to_acc && ($key ne $restrict_to_acc)) {
-            next;
-        }
-                
-        if ($MAX_ISOFORMS > 1 && exists $reorg_fasta{$key}) {
-            
-            if (scalar(@{$reorg_fasta{$key}} >= $MAX_ISOFORMS)) {
-                next;
-            }
-        }
-        
-        push (@{$reorg_fasta{$key}}, [$acc, $seq]);
-    }
-
-    return(%reorg_fasta);
-    
-}
-

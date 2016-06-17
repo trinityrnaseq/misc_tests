@@ -1,1 +1,6 @@
-./runPrep.pl -R ./ENST00000282478_7_DSPP.fa --ref_trans_only -O FL_wReads --bfly_jar /Users/bhaas/garb/Bfly.jar 
+
+
+
+./fa_files_to_eval_cmds.pl files.list PE_76_300 --strict | tee PE_76_300.cmds
+
+~/GITHUB/KCO/UGER_assist/uger_cmds_GridRunner.pl  -C PE_76_300.cmds -Q short -P regevlab
