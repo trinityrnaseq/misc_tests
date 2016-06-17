@@ -372,23 +372,23 @@ sub execute_seq_pipe {
         if ($INCLUDE_REF_TRANS) {
 	    
             if ($REF_MUT_INDEL_RATE || $REF_MUT_SUBST_RATE) { 
-		
-		&process_cmd("$ENV{TRINITY_HOME}/util/misc/randomly_mutate_seqs.pl --fasta refseqs.fa --indel $REF_MUT_INDEL_RATE --subst $REF_MUT_SUBST_RATE > refseqs.mut.fa");
-		
-		$cmd .= " --long_reads refseqs.mut.fa ";
-		
-	    }
-	    else {
-		$cmd .= " --long_reads refseqs.fa ";
+                
+                &process_cmd("$ENV{TRINITY_HOME}/util/misc/randomly_mutate_seqs.pl --fasta refseqs.fa --indel $REF_MUT_INDEL_RATE --subst $REF_MUT_SUBST_RATE > refseqs.mut.fa");
+                
+                $cmd .= " --long_reads refseqs.mut.fa ";
+                
+            }
+            else {
+                $cmd .= " --long_reads refseqs.fa ";
             }
         }
-    
+        
         $cmd .= " --left reads.left.simPE.fa --right reads.right.simPE.fa --SS_lib_type FR ";
 
     }
 
 
-    $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length 100 ";
+    $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length 100 --trinity_complete ";
     
     my $bfly_opts = " --bfly_opts \"--generate_intermediate_dot_files -R 1 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
     
