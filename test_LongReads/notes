@@ -1,6 +1,17 @@
+partition_target_transcripts.pl  -R gencode.alt_splice.min2max5.cdhit.min2k.fasta  --by_Gene refGenes_dir
 
+######
 
 
 ./fa_files_to_eval_cmds.pl files.list PE_76_300 --strict | tee PE_76_300.cmds
 
 ~/GITHUB/KCO/UGER_assist/uger_cmds_GridRunner.pl  -C PE_76_300.cmds -Q short -P regevlab
+
+
+######
+
+
+./fa_files_to_eval_cmds.pl files.list PE_76_300 --strict --incl_ref_trans | tee PE_76_300.incl_ref_trans.cmds
+
+~/GITHUB/KCO/UGER_assist/uger_cmds_GridRunner.pl  -C PE_76_300.incl_ref_trans.cmds -Q short -P regevlab
+

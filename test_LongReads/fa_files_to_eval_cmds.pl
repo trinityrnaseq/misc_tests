@@ -19,7 +19,7 @@ main: {
     my @files = `cat $files_listing_file`;
     chomp @files;
 
-    my $eval_script = "$FindBin::Bin/run_Trinity_eval.pl";
+    my $eval_script = "$FindBin::Bin/run_Trinity_eval.sh";
     my $basedir = cwd();
 
     unless ($output_basedir =~ /^\//) {

@@ -22,6 +22,7 @@ my $INCLUDE_REF_TRANS = 0;
 my $OUT_DIR = "testing_dir";
 my $READ_LENGTH = 76;
 my $FRAG_LENGTH = 300;
+my $MIN_CONTIG_LENGTH = 200;
 
 my $usage = <<__EOUSAGE__;
 
@@ -39,8 +40,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --frag_length <int>                    fragment length (default: $FRAG_LENGTH)
 #
-#  --by_Gene                              target all isoforms of a gene at once.
-#
 #  --out_dir|O <string>                   output directory name (default: $OUT_DIR)
 #
 #  * include FL seq opts:
@@ -50,13 +49,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --ref_trans_only                     only target the ref transcript itself
 #                                       (no simulation of short reads)
-#
-#  * clean-up options:
-#
-#  --no_purge                           keep files around for correctly reconstructed entries.
-#                                       (default: only the non-FL reconstructed ones are retained)
-#
-#  --always_purge                       always purge work directories
 #
 #  * Misc Opts:
 #
@@ -71,7 +63,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --paired_as_single                   treat paired reads as single reads
 #
-#  --max_isoforms <int>                 max number of isoforms to test
+#  --min_contig_length <int>            minimum contig length for Trinity assembly. default: $MIN_CONTIG_LENGTH
 #
 #  --strict                             weld all, no pruning or path merging.
 #
@@ -98,8 +90,6 @@ my $REF_TRANS_ONLY = 0;
 
 my $NO_PURGE_FLAG = 0;
 my $ALWAYS_PURGE_FLAG = 0;
-
-my $BY_GENE_FLAG = 0;
 
 my $RESTRICT_TO_ACC = "";
 
@@ -146,8 +136,8 @@ my $MAX_ITER = 0;
 
               'paired_as_single' => \$PAIRED_AS_SINGLE,
               
-              'max_isoforms=i' => \$MAX_ISOFORMS,
-
+              'min_contig_length=i' => \$MIN_CONTIG_LENGTH,
+              
               'read_length=i' => \$READ_LENGTH,
               'frag_length=i' => \$FRAG_LENGTH,
               
@@ -205,11 +195,13 @@ main: {
 
 
     my ($num_FL, $num_entries, $num_transcripts) = &execute_seq_pipe($ref_trans_fa);
-    
+    # num_FL: number of transcripts reconstructed as full-length
+    # num_entries: number of reference isoforms
+    # num_transcripts: total number of Trinity transcripts reconstructed.
     
     open (my $ofh, ">audit.txt") or die $!;
     my $captured_all = ($num_FL == $num_entries) ? "YES" : "NO";
-    my $summary = join("\t", $ref_trans_fa, $num_FL, $num_entries, $num_transcripts, $captured_all) . "\n";
+    my $summary = join("\t", $ref_trans_fa, "num_ref:", $num_entries, "num_FL:", $num_FL, "num_reco:", $num_transcripts, $captured_all) . "\n";
     print $ofh $summary;
     print $summary;
     close $ofh;
@@ -252,7 +244,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --no_cleanup ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --full_cleanup ";
 
     if ($REF_TRANS_ONLY) {
         $cmd .= " --single $ref_trans_fa --SS_lib_type F ";
@@ -277,12 +269,12 @@ sub execute_seq_pipe {
 
     }
     
-    $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length 100 --trinity_complete ";
+    $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length $MIN_CONTIG_LENGTH --trinity_complete ";
     
     my $bfly_opts = " --bfly_opts \"--generate_intermediate_dot_files -R 1 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
     
     if ($STRICT) {
-        $cmd .= " --chrysalis_debug_weld_all --iworm_opts \"--no_prune_error_kmers --min_assembly_coverage 1  --min_seed_entropy 0 --min_seed_coverage 1 \" ";  
+        $cmd .= " --no_bowtie --chrysalis_debug_weld_all --iworm_opts \"--no_prune_error_kmers --min_assembly_coverage 1  --min_seed_entropy 0 --min_seed_coverage 1 \" ";  
         
         $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
         
@@ -296,7 +288,7 @@ sub execute_seq_pipe {
         print $ofh $cmd;
         close $ofh;
     }
-    if (! -s "trinity_out_dir/Trinity.fasta") {
+    if (! -s "trinity_out_dir.Trinity.fasta") {
         &process_cmd($cmd);
     }
 
@@ -315,7 +307,7 @@ sub execute_seq_pipe {
         }
         
         # generate sequence graphs combining all
-        $cmd = "$ENV{TRINITY_HOME}/util/misc/Monarch --misc_seqs $ref_trans_fa,trinity_out_dir/inchworm.K25.L25.fa,trinity_out_dir/Trinity.fasta --graph all_compare.dot";
+        $cmd = "$ENV{TRINITY_HOME}/util/misc/Monarch --misc_seqs $ref_trans_fa,trinity_out_dir/inchworm.K25.L25.fa,trinity_out_dir.Trinity.fasta --graph all_compare.dot";
         if (! -s "all_compare.dot") {
             &process_cmd($cmd);
         }
@@ -323,7 +315,7 @@ sub execute_seq_pipe {
 
     
     # compare refseqs to the trinity assemblies
-    $cmd = "$ENV{TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl $ref_trans_fa trinity_out_dir/Trinity.fasta 98 | tee ref_compare.ascii_illus";
+    $cmd = "$ENV{TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl $ref_trans_fa trinity_out_dir.Trinity.fasta 98 | tee ref_compare.ascii_illus";
     if (! -s "ref_compare.ascii_illus") {
         &process_cmd($cmd);
     }
@@ -332,7 +324,7 @@ sub execute_seq_pipe {
     }
 
     ## get number of transcripts reconstructed:
-    $cmd = "grep '>' trinity_out_dir/Trinity.fasta | wc -l";
+    $cmd = "grep '>' trinity_out_dir.Trinity.fasta | wc -l";
     my $result = `$cmd`;
     $result =~ s/^\s+//g;
     my ($num_transcripts, @rest) = split(/\s+/, $result);
@@ -340,7 +332,7 @@ sub execute_seq_pipe {
 
     
     # reconstruction test
-    $cmd = "$ENV{TRINITY_HOME}/Analysis/FL_reconstruction_analysis/FL_trans_analysis_pipeline.pl --target $ref_trans_fa --query trinity_out_dir/Trinity.fasta --reuse --out_prefix FL.test  --allow_non_unique_mappings | tee FL_analysis.txt";
+    $cmd = "$ENV{TRINITY_HOME}/Analysis/FL_reconstruction_analysis/FL_trans_analysis_pipeline.pl --target $ref_trans_fa --query trinity_out_dir.Trinity.fasta --reuse --out_prefix FL.test  --allow_non_unique_mappings | tee FL_analysis.txt";
 
     &process_cmd("echo $cmd > FL.cmd");
     my @results = `$cmd`;

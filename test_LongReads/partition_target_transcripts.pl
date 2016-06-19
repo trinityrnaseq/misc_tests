@@ -16,7 +16,7 @@ my $help_flag;
 
 my $ref_trans_fa;
 my $MIN_REFSEQ_LENGTH = 100;
-my $OUT_DIR = "testing_dir";
+my $OUT_DIR = "Seqs_dir";
 
 my $usage = <<__EOUSAGE__;
 
