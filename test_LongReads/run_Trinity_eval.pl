@@ -245,7 +245,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --full_cleanup ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --full_cleanup --max_reads_per_graph 10000000 --group_pairs_distance 10000 ";
 
     if ($REF_TRANS_ONLY) {
         $cmd .= " --single $ref_trans_fa --SS_lib_type F ";
