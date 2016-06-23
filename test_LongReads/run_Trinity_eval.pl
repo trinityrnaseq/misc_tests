@@ -226,6 +226,7 @@ sub execute_seq_pipe {
             . " --require_proper_pairs "
             . " --read_length $READ_LENGTH "
             . " --frag_length $FRAG_LENGTH "
+            . " --max_depth 20 "
             ;
         
         if ($READ_MUT_RATE) {
