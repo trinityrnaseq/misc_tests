@@ -67,6 +67,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --strict                             weld all, no pruning or path merging.
 #
+#  --no_cleanup                         no cleaning up of trinity output.  
+#
 ####
 #  ** Mutate the reads
 #
@@ -88,10 +90,8 @@ my $VERBOSITY_LEVEL = 12;
 
 my $REF_TRANS_ONLY = 0;
 
-my $NO_PURGE_FLAG = 0;
-my $ALWAYS_PURGE_FLAG = 0;
 
-my $RESTRICT_TO_ACC = "";
+my $NO_CLEANUP = 0;
 
 my $INCLUDE_REF_DOT_FILES = 0;
 
@@ -125,9 +125,6 @@ my $MAX_ITER = 0;
               
               'ref_trans_only' => \$REF_TRANS_ONLY,
               
-              'no_purge' => \$NO_PURGE_FLAG,
-              'always_purge' => \$ALWAYS_PURGE_FLAG,
-              
               'strict' => \$STRICT,
 
               'V=i' => \$VERBOSITY_LEVEL,
@@ -146,8 +143,10 @@ my $MAX_ITER = 0;
               'ref_mut_indel_rate=f' => \$REF_MUT_INDEL_RATE,
               'ref_mut_subst_rate=f' => \$REF_MUT_SUBST_RATE,
               
-                            
 
+              'no_cleanup' => \$NO_CLEANUP,
+              
+              
 );
 
 
@@ -245,7 +244,11 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --full_cleanup --max_reads_per_graph 10000000 --group_pairs_distance 10000 ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 ";
+    unless ($NO_CLEANUP) {
+        $cmd .= " --full_cleanup ";
+    }
+    
 
     if ($REF_TRANS_ONLY) {
         $cmd .= " --single $ref_trans_fa --SS_lib_type F ";
