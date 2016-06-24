@@ -294,8 +294,12 @@ sub execute_seq_pipe {
     }
     if (! -s "trinity_out_dir.Trinity.fasta") {
         &process_cmd($cmd);
+    
+        if ($NO_CLEANUP) {
+            rename("trinity_out_dir/Trinity.fasta", "trinity_out_dir.Trinity.fasta");
+        }
     }
-
+    
 
     if ($INCLUDE_REF_DOT_FILES) {
         # generate sequence graphs just refseqs
