@@ -245,7 +245,10 @@ sub execute_seq_pipe {
     }
     
     my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 ";
-    unless ($NO_CLEANUP) {
+    if ($NO_CLEANUP) {
+        $cmd .= " --no_cleanup ";
+    }
+    else {
         $cmd .= " --full_cleanup ";
     }
     
