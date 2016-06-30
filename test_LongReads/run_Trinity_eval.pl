@@ -74,7 +74,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  --read_mut_rate <float>              simulated read error rate (default: 0)  (value between 0 and 0.25 allowed)
 #
-#  --ref_mut_indel_rate <float>         mutate indels in the ref sequence (default: 0) ( values allowed 0<x<0.25)
+#  --ref_mut_insert_rate <float>        mutate insertions in the ref sequence (default: 0) ( values allowed 0<x<0.25)
+#
+#  --ref_mut_delete_rate <float>        mutate deletions in the ref sequence (default: 0)  ( values allowed 0<x<0.25)
 #
 #  --ref_mut_subst_rate <float>         mutate substitutions in ref seq (default: 0) (values allowed 0<x<0.25)
 #
@@ -103,7 +105,8 @@ my $MAX_ISOFORMS = -1;
 
 my $READ_MUT_RATE = 0;
 
-my $REF_MUT_INDEL_RATE = 0;
+my $REF_MUT_INSERT_RATE = 0;
+my $REF_MUT_DELETE_RATE = 0;
 my $REF_MUT_SUBST_RATE = 0;
 
 my $STRICT = 0;
@@ -140,10 +143,10 @@ my $MAX_ITER = 0;
               
               'read_mut_rate=f' => \$READ_MUT_RATE,
               
-              'ref_mut_indel_rate=f' => \$REF_MUT_INDEL_RATE,
+              'ref_mut_insert_rate=f' => \$REF_MUT_INSERT_RATE,
+              'ref_mut_delete_rate=f' => \$REF_MUT_DELETE_RATE,
               'ref_mut_subst_rate=f' => \$REF_MUT_SUBST_RATE,
               
-
               'no_cleanup' => \$NO_CLEANUP,
               
               
@@ -172,7 +175,7 @@ if ($PAIRED_AS_SINGLE) {
     $PAIRED_AS_SINGLE = "--TREAT_PAIRS_AS_SINGLE";
 }
 
-if ( ($REF_MUT_INDEL_RATE || $REF_MUT_SUBST_RATE) && ! $INCLUDE_REF_TRANS) {
+if ( ($REF_MUT_SUBST_RATE || $REF_MUT_INSERT_RATE || $REF_MUT_DELETE_RATE) && ! $INCLUDE_REF_TRANS) {
     die "Error, ref mut rate set, but not including ref trans in reconstruction.  Use --incl_ref_trans";
 }
 
@@ -225,11 +228,11 @@ sub execute_seq_pipe {
             . " --require_proper_pairs "
             . " --read_length $READ_LENGTH "
             . " --frag_length $FRAG_LENGTH "
-            . " --max_depth 20 "
+            . " --max_depth 4 --frag_length_step 200 "
             ;
         
         if ($READ_MUT_RATE) {
-            $cmd .= " --error_rate $READ_MUT_RATE --max_depth 20 ";
+            $cmd .= " --error_rate $READ_MUT_RATE ";
         }
         
         &process_cmd($cmd);
@@ -260,9 +263,13 @@ sub execute_seq_pipe {
         
         if ($INCLUDE_REF_TRANS) {
 	    
-            if ($REF_MUT_INDEL_RATE || $REF_MUT_SUBST_RATE) { 
+            if ($REF_MUT_SUBST_RATE || $REF_MUT_INSERT_RATE || $REF_MUT_DELETE_RATE) { 
                 
-                &process_cmd("$ENV{TRINITY_HOME}/util/misc/randomly_mutate_seqs.pl --fasta $ref_trans_fa --indel $REF_MUT_INDEL_RATE --subst $REF_MUT_SUBST_RATE > refseqs.mut.fa");
+                &process_cmd("$ENV{TRINITY_HOME}/util/misc/randomly_mutate_seqs.pl --fasta $ref_trans_fa "
+                             . " --subst_rate $REF_MUT_SUBST_RATE "
+                             . " --insert_rate $REF_MUT_INSERT_RATE "
+                             . " --delete_rate $REF_MUT_DELETE_RATE "
+                             . " > refseqs.mut.fa");
                 
                 $cmd .= " --long_reads refseqs.mut.fa ";
                 
