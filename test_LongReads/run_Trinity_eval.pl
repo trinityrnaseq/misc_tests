@@ -13,7 +13,6 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use List::Util qw (shuffle);
 
 my $help_flag;
-
 my $ref_trans_fa;
 my $NUM_FAILURES_TO_CAPTURE = 10;
 my $BFLY_JAR = "$ENV{TRINITY_HOME}/Butterfly/Butterfly.jar";
@@ -23,6 +22,7 @@ my $OUT_DIR = "testing_dir";
 my $READ_LENGTH = 76;
 my $FRAG_LENGTH = 300;
 my $MIN_CONTIG_LENGTH = 200;
+
 
 my $usage = <<__EOUSAGE__;
 
@@ -284,6 +284,8 @@ sub execute_seq_pipe {
     }
     
     $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length $MIN_CONTIG_LENGTH --trinity_complete ";
+
+    
     
     my $bfly_opts = " --bfly_opts \"--generate_intermediate_dot_files -R 1 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
     
@@ -292,6 +294,9 @@ sub execute_seq_pipe {
         
         $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 -F 100000 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
         
+    }
+    else {
+        $cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
     }
     
     $cmd .= " $bfly_opts 2>&1 | tee trin.log";
