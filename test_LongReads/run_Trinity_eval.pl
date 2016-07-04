@@ -247,7 +247,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose ";
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }
@@ -290,13 +290,15 @@ sub execute_seq_pipe {
     my $bfly_opts = " --bfly_opts \"--generate_intermediate_dot_files -R 1 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
     
     if ($STRICT) {
-        $cmd .= " --no_bowtie --chrysalis_debug_weld_all --iworm_opts \"--no_prune_error_kmers --min_assembly_coverage 1  --min_seed_entropy 0 --min_seed_coverage 1 \" ";  
+        $cmd .= " --no_bowtie --chrysalis_debug_weld_all "
+            . " --iworm_opts \"--no_prune_error_kmers --min_assembly_coverage 1  --min_seed_entropy 0 --min_seed_coverage 1 \" ";  
         
         $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 -F 100000 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
         
     }
     else {
-        $cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
+        #$cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
+        #$cmd .= " --iworm_opts \" --min_seed_entropy 1 \" --min_glue 1 ";
     }
     
     $cmd .= " $bfly_opts 2>&1 | tee trin.log";
