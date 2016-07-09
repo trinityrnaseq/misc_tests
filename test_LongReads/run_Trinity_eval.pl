@@ -88,7 +88,7 @@ __EOUSAGE__
     ;
 
 
-my $VERBOSITY_LEVEL = 12;
+my $VERBOSITY_LEVEL = 15;
 
 my $REF_TRANS_ONLY = 0;
 
@@ -196,14 +196,22 @@ main: {
     
 
 
-    my ($num_FL, $num_entries, $num_transcripts) = &execute_seq_pipe($ref_trans_fa);
+    my ($num_FL, $num_entries, $num_transcripts,
+        $has_all_iworm_kmers, $has_all_precious_edges) = &execute_seq_pipe($ref_trans_fa);
     # num_FL: number of transcripts reconstructed as full-length
     # num_entries: number of reference isoforms
     # num_transcripts: total number of Trinity transcripts reconstructed.
     
     open (my $ofh, ">audit.txt") or die $!;
     my $captured_all = ($num_FL == $num_entries) ? "YES" : "NO";
-    my $summary = join("\t", $ref_trans_fa, "num_ref:", $num_entries, "num_FL:", $num_FL, "num_reco:", $num_transcripts, $captured_all) . "\n";
+    my $summary = join("\t", $ref_trans_fa, 
+                       "num_ref:", $num_entries, 
+                       "num_FL:", $num_FL, 
+                       "num_reco:", $num_transcripts, 
+                       "captured_all:", $captured_all,
+                       "iworm_ok: ", $has_all_iworm_kmers,
+                       "bfly_edges_ok: ", $has_all_precious_edges) . "\n";
+    
     print $ofh $summary;
     print $summary;
     close $ofh;
@@ -247,7 +255,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }
@@ -297,7 +305,7 @@ sub execute_seq_pipe {
         
     }
     else {
-        #$cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
+        $cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
         #$cmd .= " --iworm_opts \" --min_seed_entropy 1 \" --min_glue 1 ";
     }
     
@@ -318,6 +326,19 @@ sub execute_seq_pipe {
     }
     
 
+    ## check inchworm kmer content of reference sequences
+
+    &process_cmd("$ENV{TRINITY_HOME}/util/misc/print_kmers.pl $ref_trans_fa 24 > ref_kmers");
+
+    
+    my $has_all_iworm_kmers = &check_inchworm_kmer_content($ref_trans_fa, "trinity_out_dir/inchworm.K25.L25.fa");
+
+
+    ## examine pruning of precious edges
+    my $has_all_precious_edges = &check_pruning("trin.log", "ref_kmers");
+    
+    
+    
     if ($INCLUDE_REF_DOT_FILES) {
         # generate sequence graphs just refseqs
         $cmd = "$ENV{TRINITY_HOME}/util/misc/Monarch --misc_seqs $ref_trans_fa --graph refseqs.dot";
@@ -385,9 +406,10 @@ sub execute_seq_pipe {
         print STDERR "** missed at least one reconstructed isoform ($num_FL reconstructed / $num_entries total reconstructed).\n";
     }
     
-
-    return ($num_FL, $num_entries, $num_transcripts);
-
+    
+    return ($num_FL, $num_entries, $num_transcripts, $has_all_iworm_kmers, $has_all_precious_edges);
+    
+    
 }
 
 
@@ -403,3 +425,54 @@ sub process_cmd {
 
     return;
 }
+
+
+
+
+
+
+####
+sub check_inchworm_kmer_content {
+    my ($ref_trans_fa, $iworm_file) = @_;
+
+    my $cmd = "$ENV{TRINITY_HOME}/Inchworm/bin/inchworm --threadFasta $ref_trans_fa --reads $iworm_file > $iworm_file.ref_kmer_check";
+    &process_cmd($cmd);
+
+    my $has_all_kmers = "YES";
+    
+    open (my $fh, "$iworm_file.ref_kmer_check") or die $!;
+    while (<$fh>) {
+        chomp;
+        my @x = split(/\t/);
+        my $kmer_info = $x[1];
+        if ($kmer_info && $kmer_info =~ /:/) {
+            my ($kmer, $count) = split(/:/, $kmer_info);
+            if ($count == 0) {
+                print "Inchworm missing kmer: $kmer\n";
+                $has_all_kmers = "NO";
+            }
+        }
+    }
+    close $fh;
+    
+    return($has_all_kmers);
+}
+
+####
+sub check_pruning {
+    my ($log_file, $ref_kmers_file) = @_;
+
+    my $pruned_ref_edges = `$FindBin::Bin/util/find_pruned_edges_shouldve_kept.pl $ref_kmers_file $log_file`;
+
+    if ($pruned_ref_edges =~ /\w/) {
+        print "Pruned precious edges: $pruned_ref_edges\n";
+        return("NO");
+    }
+    else {
+        print "no pruning of precious edges\n";
+        return("YES");
+    }
+}
+
+
+    
