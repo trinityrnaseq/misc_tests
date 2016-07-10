@@ -124,7 +124,7 @@ my $MAX_ITER = 0;
               'bfly_jar|B=s' => \$BFLY_JAR,
 
               'min_refseq_length=i' => \$MIN_REFSEQ_LENGTH,
-              'incl_ref_trans_itself' => \$INCLUDE_REF_TRANS,
+              'incl_ref_trans' => \$INCLUDE_REF_TRANS,
               
               'ref_trans_only' => \$REF_TRANS_ONLY,
               
@@ -164,6 +164,8 @@ unless ($ref_trans_fa && $BFLY_JAR) {
 }
 
 
+$NO_CLEANUP = 1; ## NEEDED NOW for iworm and bfy pruning assessment
+
 unless ($ENV{TRINITY_HOME}) {
     $ENV{TRINITY_HOME} = "$FindBin::Bin/../../trinityrnaseq/";
 }
@@ -196,21 +198,33 @@ main: {
     
 
 
-    my ($num_FL, $num_entries, $num_transcripts,
-        $has_all_iworm_kmers, $has_all_precious_edges) = &execute_seq_pipe($ref_trans_fa);
+    my ($num_reco_FL, $num_ref_entries, $num_trans_reco,
+        $has_all_iworm_kmers, $has_all_precious_edges, 
+        $num_LR_threaded) = &execute_seq_pipe($ref_trans_fa);
     # num_FL: number of transcripts reconstructed as full-length
     # num_entries: number of reference isoforms
     # num_transcripts: total number of Trinity transcripts reconstructed.
     
     open (my $ofh, ">audit.txt") or die $!;
-    my $captured_all = ($num_FL == $num_entries) ? "YES" : "NO";
+    my $captured_all = ($num_reco_FL == $num_ref_entries) ? "YES" : "NO";
+
+
+    my $header = join("\t", "ref_fa", "num_ref", "num_FL", "num_reco", "captured_all", "iworm_ok", "bfly_edges_ok",
+        "num_LR_threaded", "all_LR_threaded_ok");
+
+    my $all_LR_threaded_ok = ($num_LR_threaded == $num_reco_FL) ? "YES" : "NO"; 
+    
     my $summary = join("\t", $ref_trans_fa, 
-                       "num_ref:", $num_entries, 
-                       "num_FL:", $num_FL, 
-                       "num_reco:", $num_transcripts, 
-                       "captured_all:", $captured_all,
-                       "iworm_ok: ", $has_all_iworm_kmers,
-                       "bfly_edges_ok: ", $has_all_precious_edges) . "\n";
+                       $num_ref_entries, 
+                       $num_reco_FL, 
+                       $num_trans_reco, 
+                       $captured_all,
+                       $has_all_iworm_kmers,
+                       $has_all_precious_edges, 
+                       $num_LR_threaded,
+                       $all_LR_threaded_ok);
+
+    $summary = "$header\n$summary\n";
     
     print $ofh $summary;
     print $summary;
@@ -227,7 +241,8 @@ sub execute_seq_pipe {
     
             
     my $num_entries = `grep '>' $ref_trans_fa | wc -l `;
-    chomp $num_entries;
+    $num_entries =~ /(\d+)/ or die "Error, cannot parse number of entries from $ref_trans_fa";
+    $num_entries = $1;
     
     unless ($REF_TRANS_ONLY) {
         
@@ -335,9 +350,10 @@ sub execute_seq_pipe {
 
 
     ## examine pruning of precious edges
-    my $has_all_precious_edges = &check_pruning("trin.log", "ref_kmers");
-    
-    
+    my ($has_all_precious_edges) = &check_pruning("trin.log", "ref_kmers");
+
+    ## see if all LR are threaded through the graph
+    my $num_LR_threaded = &count_num_LR_threaded("trin.log");
     
     if ($INCLUDE_REF_DOT_FILES) {
         # generate sequence graphs just refseqs
@@ -407,7 +423,7 @@ sub execute_seq_pipe {
     }
     
     
-    return ($num_FL, $num_entries, $num_transcripts, $has_all_iworm_kmers, $has_all_precious_edges);
+    return ($num_FL, $num_entries, $num_transcripts, $has_all_iworm_kmers, $has_all_precious_edges, $num_LR_threaded);
     
     
 }
@@ -474,5 +490,27 @@ sub check_pruning {
     }
 }
 
+####
+sub count_num_LR_threaded {
+    my ($logfile) = @_;
 
+    # FINAL BEST PATH for LR$|ENST00000479454.1;ASZ1_mutated is [1, 228, 373, 2906, 598, 2885, 771] with total mm: 55
+    # No read mapping found for: LR$|ENST00000465832.1;ASZ1_mutated
+
+    my $num_LR_threaded = 0;
     
+    open(my $fh, $logfile) or die "Error, cannot open file $logfile";
+    while(<$fh>) {
+        chomp;
+        if (/FINAL BEST PATH for LR\$/) {
+            print "$_\n";
+            $num_LR_threaded++;
+        }
+        elsif (/No read mapping found for: LR\$/) {
+            print "$_\n";
+        }
+    }
+    close $fh;
+
+    return($num_LR_threaded);
+}
