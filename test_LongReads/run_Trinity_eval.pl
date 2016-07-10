@@ -370,9 +370,8 @@ sub execute_seq_pipe {
     $result =~ s/^\s+//;
     
     my @pts = split(/\s+/, $result);
-    my $num_FL = $pts[2];
-     
-
+    my $num_FL = $pts[2] || 0;
+    
     my $got_all_flag = 0;
     
     if ($num_FL == $num_entries) {
