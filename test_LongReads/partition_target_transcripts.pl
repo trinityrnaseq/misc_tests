@@ -206,13 +206,22 @@ sub reorganize_fasta_seqs {
 
         my $key = $acc;
         if ($by_gene_flag) {
-            my ($trans, $gene) = split(/;/, $acc);
-            unless ($gene) {
+            if ($acc =~ /^([^;]+);([^;]+)$/) {
+                my $trans = $1;
+                my $gene = $2;
+                $key = $gene;
+            }
+            elsif ($acc =~ /^([^\|]+)\|([^\|]+)$/) {
+                my $gene = $1;
+                my $trans = $2;
+                $key = $gene;
+            }
+            else {
                 confess "Error, no gene ID extracted from $acc ";
             }
-            $key = $gene;
+            
         }
-                
+        
         if ($MAX_ISOFORMS > 1 && exists $reorg_fasta{$key}) {
             
             if (scalar(@{$reorg_fasta{$key}} >= $MAX_ISOFORMS)) {

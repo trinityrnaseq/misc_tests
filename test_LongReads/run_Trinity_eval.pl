@@ -212,7 +212,7 @@ main: {
     my $header = join("\t", "ref_fa", "num_ref", "num_FL", "num_reco", "captured_all", "iworm_ok", "bfly_edges_ok",
         "num_LR_threaded", "all_LR_threaded_ok");
 
-    my $all_LR_threaded_ok = ($num_LR_threaded == $num_reco_FL) ? "YES" : "NO"; 
+    my $all_LR_threaded_ok = ($num_LR_threaded == $num_ref_entries) ? "YES" : "NO"; 
     
     my $summary = join("\t", $ref_trans_fa, 
                        $num_ref_entries, 
@@ -320,7 +320,7 @@ sub execute_seq_pipe {
         
     }
     else {
-        $cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
+        #$cmd .= " --no_bowtie --chrysalis_debug_weld_all ";
         #$cmd .= " --iworm_opts \" --min_seed_entropy 1 \" --min_glue 1 ";
     }
     
