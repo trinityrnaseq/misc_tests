@@ -1,17 +1,30 @@
-partition_target_transcripts.pl  -R gencode.alt_splice.min2max5.cdhit.min2k.fasta  --by_Gene refGenes_dir
+
+# run tests elsewhere due to disk space requirements:
+
+cd /home/unix/bhaas/regevtmp/bhaas/TrinLRtesting
+
+# write reference targets out to Seqs_dir/
+
+/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl  -R /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/gencode.alt_splice.min2max5.cdhit.min2k.fasta  --by_Gene refGenes_dir
+
 
 ######
 
+find Seqs_dir/ -regex ".*refseqs.fa" | tee files.list
 
-./fa_files_to_eval_cmds.pl files.list PE_76_300 --strict | tee PE_76_300.cmds
+/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/fa_files_to_eval_cmds.pl files.list PE_76_300 --strict --incl_ref_trans | tee PE_76_300.cmds
 
-~/GITHUB/KCO/UGER_assist/uger_cmds_GridRunner.pl  -C PE_76_300.cmds -Q short -P regevlab
+
+# run cmds on UGER
 
 
 ######
 
+analyze results:
 
-./fa_files_to_eval_cmds.pl files.list PE_76_300 --strict --incl_ref_trans | tee PE_76_300.incl_ref_trans.cmds
+find PE_76_300 -regex ".*audit.txt" -exec cat {} \; > auditsummary.txt
 
-~/GITHUB/KCO/UGER_assist/uger_cmds_GridRunner.pl  -C PE_76_300.incl_ref_trans.cmds -Q short -P regevlab
+
+grep NO auditsummary.txt  | tee auditsummary.txt.NO
+
 
