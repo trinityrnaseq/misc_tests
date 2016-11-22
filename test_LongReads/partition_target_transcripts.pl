@@ -105,7 +105,6 @@ main: {
     
         
     my $total_counter = 0;
-    my $failed_counter = 0;
 
     my @accs = keys %reorganized_fasta_seqs;
 
@@ -139,8 +138,15 @@ main: {
         }
 
         &prep_seqs($acc, \@min_length_targets);
+        
+        $total_counter++;
+        if ($total_counter % 100 == 0) {
+            print STDERR "[$total_counter]\n\n";
+        }
     }
-
+    
+    print STDERR "\nDone.\n\n";
+    
     exit(0);
 }
 
