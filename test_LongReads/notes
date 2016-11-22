@@ -24,6 +24,8 @@ analyze results:
 
 find PE_76_300 -regex ".*audit.txt" -exec cat {} \; > auditsummary.txt
 
+ ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.pl auditsummary.txt 
+
 
 grep NO auditsummary.txt  | tee auditsummary.txt.NO
 
