@@ -29,6 +29,7 @@ my $usage = <<__EOUSAGE__;
 #  * Common Opts:
 #
 #  --by_Gene                              target all isoforms of a gene at once.
+#                                            (requires multiple isoforms, ignores single-iso genes)
 #
 #  --out_dir|O <string>                   output directory name (default: $OUT_DIR)
 #
