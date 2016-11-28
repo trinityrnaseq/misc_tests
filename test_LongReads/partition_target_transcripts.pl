@@ -133,7 +133,7 @@ main: {
             my ($trans_acc, $seq) = ($entry->{acc},
                                      $entry->{seq});
             
-            if (length($seq) >= $MIN_REFSEQ_LENGTH) {
+            if (length($seq) >= $MIN_REFSEQ_LENGTH && $seq !~ /N/i) {
                 push (@min_length_targets, $entry);
             }
         }
@@ -165,9 +165,6 @@ main: {
             }
             
         }
-        
-
-
 
         &prep_seqs($acc, \@min_length_targets);
         
