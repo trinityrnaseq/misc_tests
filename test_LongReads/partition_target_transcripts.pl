@@ -110,10 +110,6 @@ main: {
     my %reorganized_fasta_seqs = &reorganize_fasta_seqs(\%fasta_seqs, $BY_GENE_FLAG);
 
         
-    unless (-d $OUT_DIR) {
-        mkdir($OUT_DIR) or die $!;
-    }
-    
         
     my $total_counter = 0;
 
@@ -133,7 +129,7 @@ main: {
             my ($trans_acc, $seq) = ($entry->{acc},
                                      $entry->{seq});
             
-            if (length($seq) >= $MIN_REFSEQ_LENGTH && $seq !~ /N/i) {
+            if (length($seq) >= $MIN_REFSEQ_LENGTH && $seq !~ /[^GATC]/i) {
                 push (@min_length_targets, $entry);
             }
         }
@@ -142,7 +138,11 @@ main: {
             print STDERR "No min length targets to pursue for $acc .... skipping.\n";
             next; 
         }
-        
+
+        unless (-d $OUT_DIR) {
+            mkdir($OUT_DIR) or die $!;
+        }
+                
         @min_length_targets = reverse sort {length($a->{seq}) <=> length($b->{seq}) } @min_length_targets;
         
         my $num_total_targets = scalar(@min_length_targets);

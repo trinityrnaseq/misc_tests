@@ -262,8 +262,12 @@ sub execute_seq_pipe {
             $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_illuminaPE_from_transcripts.wgsim.pl --transcripts $ref_trans_fa "
                 . " --read_length $READ_LENGTH "
                 . " --frag_length $FRAG_LENGTH "
-                . " --depth_of_cov 100 "
+                . " --depth_of_cov 200 "
                 ;
+            
+            if ($strand_specific_flag) {
+                $cmd .= " --SS_lib_type FR ";
+            }
             
         }
         else {
