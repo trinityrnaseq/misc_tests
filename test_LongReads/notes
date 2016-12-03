@@ -5,14 +5,14 @@ cd /home/unix/bhaas/regevtmp/bhaas/TrinLRtesting
 
 # write reference targets out to Seqs_dir/
 
-/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl  -R /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/gencode.alt_splice.min2max5.cdhit.min2k.fasta  --by_Gene refGenes_dir
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl  -R ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/gencode.alt_splice.min2max5.cdhit.min2k.fasta  --by_Gene refGenes_dir
 
 
 ######
 
 find Seqs_dir/ -regex ".*refseqs.fa" | tee files.list
 
-/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/fa_files_to_eval_cmds.pl files.list PE_76_300 --strict --incl_ref_trans | tee PE_76_300.cmds
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/fa_files_to_eval_cmds.pl files.list PE_76_300 --strict --incl_ref_trans | tee PE_76_300.cmds
 
 
 # run cmds on UGER
