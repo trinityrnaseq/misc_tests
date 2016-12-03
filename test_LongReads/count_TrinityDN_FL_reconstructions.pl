@@ -64,7 +64,7 @@ if ($help_flag) {
     die $usage;
 }
 
-unless($psl_stats_file && $ref_trans && $gene_trans_map) {
+unless($psl_stats_file && $ref_trans_file && $gene_trans_map_file) {
     die $usage;
 }
 
@@ -78,9 +78,6 @@ main: {
     open(my $fh, $psl_stats_file) or die "Error, cannot open file $psl_stats_file";
     my $tab_reader = new DelimParser::Reader($fh, "\t");
     
-
-    
-
     ## count transcripts and genes.
     my %query_seen;
         
@@ -100,14 +97,13 @@ main: {
             &&
             $per_gap <= $max_per_gap
             &&
-            $per_len >= $min_per_len) {
-
+            $per_len >= $min_per_length) {
+            
             # got candidate 'full-length' match.
-
+            
             my $gene = $trans_to_gene{$target} or die "Error, cannot find gene for trans: $target";
             $gene_to_trans{$gene}->{$target} = 1;
-            
-            
+                        
         }
                 
     }
