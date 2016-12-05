@@ -92,7 +92,7 @@ __EOUSAGE__
     ;
 
 
-my $VERBOSITY_LEVEL = 15;
+my $VERBOSITY_LEVEL = 10;
 
 my $REF_TRANS_ONLY = 0;
 
@@ -287,7 +287,7 @@ sub execute_seq_pipe {
             }
         }
         
-        &process_cmd($cmd);
+        &process_cmd($cmd) unless (-s "reads.left.simPE.fa"); # keep sim reads if already generated earlier.
         
     }
     
@@ -299,7 +299,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 4G --bflyHeapSpaceMax 10G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }
@@ -348,7 +348,7 @@ sub execute_seq_pipe {
         $cmd .= " --no_bowtie --chrysalis_debug_weld_all "
             . " --iworm_opts \"--no_prune_error_kmers --min_assembly_coverage 1  --min_seed_entropy 0 --min_seed_coverage 1 \" ";  
         
-        $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 -F 100000 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
+        $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --NO_EM_REDUCE --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 -F 100000 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
         
     }
     else {
@@ -364,14 +364,13 @@ sub execute_seq_pipe {
         print $ofh $cmd;
         close $ofh;
     }
-    if (! -s "trinity_out_dir.Trinity.fasta") {
-        &process_cmd($cmd);
     
-        if ($NO_CLEANUP) {
-            rename("trinity_out_dir/Trinity.fasta", "trinity_out_dir.Trinity.fasta");
-        }
+    &process_cmd($cmd);
+    
+    if ($NO_CLEANUP) {
+        rename("trinity_out_dir/Trinity.fasta", "trinity_out_dir.Trinity.fasta");
     }
-    
+        
 
     ## check inchworm kmer content of reference sequences
 
@@ -427,7 +426,7 @@ sub execute_seq_pipe {
 
     
     # reconstruction test
-    $cmd = "$ENV{TRINITY_HOME}/Analysis/FL_reconstruction_analysis/FL_trans_analysis_pipeline.pl --target $ref_trans_fa --query trinity_out_dir.Trinity.fasta --reuse --out_prefix FL.test  --allow_non_unique_mappings --min_per_length 90 | tee FL_analysis.txt";
+    $cmd = "$ENV{TRINITY_HOME}/Analysis/FL_reconstruction_analysis/FL_trans_analysis_pipeline.pl --target $ref_trans_fa --query trinity_out_dir.Trinity.fasta --no_reuse --out_prefix FL.test  --allow_non_unique_mappings --min_per_length 90 | tee FL_analysis.txt";
 
     &process_cmd("echo $cmd > FL.cmd");
     my @results = `$cmd`;
@@ -454,6 +453,11 @@ sub execute_seq_pipe {
         print STDERR "** missed at least one reconstructed isoform ($num_FL reconstructed / $num_entries total reconstructed).\n";
     }
     
+    
+
+    # cleanup really needed after all. 
+    system("rm -rf ./trinity_out_dir");
+
     
     return ($num_FL, $num_entries, $num_transcripts, $has_all_iworm_kmers, $has_all_precious_edges, $num_LR_threaded);
     
