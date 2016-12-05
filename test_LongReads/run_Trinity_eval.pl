@@ -69,6 +69,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  --no_cleanup                         no cleaning up of trinity output.  
 #
+#  --wgsim                              use wgsim for simulating reads
+#
+#  --strand_specific                    sets to strand-specific mode (FR)  (! for use with wgsim)
+#
 ####
 #  ** Mutate the reads
 #
@@ -88,7 +92,7 @@ __EOUSAGE__
     ;
 
 
-my $VERBOSITY_LEVEL = 15;
+my $VERBOSITY_LEVEL = 10;
 
 my $REF_TRANS_ONLY = 0;
 
@@ -112,6 +116,8 @@ my $REF_MUT_SUBST_RATE = 0;
 my $STRICT = 0;
 
 my $MAX_ITER = 0;
+my $use_wgsim_flag = 0;
+my $strand_specific_flag = 0;
 
 
 &GetOptions ( 'h' => \$help_flag,
@@ -149,7 +155,9 @@ my $MAX_ITER = 0;
               
               'no_cleanup' => \$NO_CLEANUP,
               
-              
+              'wgsim' => \$use_wgsim_flag,
+
+              'strand_specific' => \$strand_specific_flag,
 );
 
 
@@ -246,19 +254,40 @@ sub execute_seq_pipe {
     
     unless ($REF_TRANS_ONLY) {
         
-        # simulate reads:
-        my $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_illuminaPE_from_transcripts.pl --transcripts $ref_trans_fa --include_volcano_spread "
-            . " --require_proper_pairs "
-            . " --read_length $READ_LENGTH "
-            . " --frag_length $FRAG_LENGTH "
-            . " --max_depth 4 --frag_length_step 200 "
-            ;
-        
-        if ($READ_MUT_RATE) {
-            $cmd .= " --error_rate $READ_MUT_RATE ";
+        my $cmd = "";
+
+        if ($use_wgsim_flag) {
+            
+            # simulate reads:
+            $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_illuminaPE_from_transcripts.wgsim.pl --transcripts $ref_trans_fa "
+                . " --read_length $READ_LENGTH "
+                . " --frag_length $FRAG_LENGTH "
+                . " --depth_of_cov 200 "
+                ;
+            
+            if ($strand_specific_flag) {
+                $cmd .= " --SS_lib_type FR ";
+            }
+            
+        }
+        else {
+
+            # default, use home-grown simple simulator
+            
+            # simulate reads:
+            $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_illuminaPE_from_transcripts.pl --transcripts $ref_trans_fa --include_volcano_spread "
+                . " --require_proper_pairs "
+                . " --read_length $READ_LENGTH "
+                . " --frag_length $FRAG_LENGTH "
+                . " --max_depth 4 --frag_length_step 200 "
+                ;
+            
+            if ($READ_MUT_RATE) {
+                $cmd .= " --error_rate $READ_MUT_RATE ";
+            }
         }
         
-        &process_cmd($cmd);
+        &process_cmd($cmd) unless (-s "reads.left.simPE.fa"); # keep sim reads if already generated earlier.
         
     }
     
@@ -270,7 +299,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 1G --bflyHeapSpaceMax 10G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
+    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 4G --bflyHeapSpaceMax 10G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }
@@ -302,11 +331,14 @@ sub execute_seq_pipe {
             }
         }
         
-        $cmd .= " --left reads.left.simPE.fa --right reads.right.simPE.fa --SS_lib_type FR ";
+        $cmd .= " --left reads.left.simPE.fa --right reads.right.simPE.fa ";
 
+        if ($strand_specific_flag) {
+            $cmd .= " --SS_lib_type FR ";
+        }
     }
     
-    $cmd .= " --CPU 1 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length $MIN_CONTIG_LENGTH --trinity_complete ";
+    $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length $MIN_CONTIG_LENGTH --trinity_complete ";
 
     
     
@@ -316,7 +348,7 @@ sub execute_seq_pipe {
         $cmd .= " --no_bowtie --chrysalis_debug_weld_all "
             . " --iworm_opts \"--no_prune_error_kmers --min_assembly_coverage 1  --min_seed_entropy 0 --min_seed_coverage 1 \" ";  
         
-        $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 -F 100000 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
+        $bfly_opts = " --bfly_opts \"--dont-collapse-snps --no_pruning --no_path_merging --no_remove_lower_ranked_paths --NO_EM_REDUCE --MAX_READ_SEQ_DIVERGENCE=0 --NO_DP_READ_TO_VERTEX_ALIGN --generate_intermediate_dot_files -R 1 -F 100000 --generate_intermediate_dot_files $PAIRED_AS_SINGLE --stderr -V $VERBOSITY_LEVEL @ARGV\" ";
         
     }
     else {
@@ -332,21 +364,21 @@ sub execute_seq_pipe {
         print $ofh $cmd;
         close $ofh;
     }
-    if (! -s "trinity_out_dir.Trinity.fasta") {
-        &process_cmd($cmd);
     
-        if ($NO_CLEANUP) {
-            rename("trinity_out_dir/Trinity.fasta", "trinity_out_dir.Trinity.fasta");
-        }
+    &process_cmd($cmd);
+    
+    if ($NO_CLEANUP) {
+        rename("trinity_out_dir/Trinity.fasta", "trinity_out_dir.Trinity.fasta");
     }
-    
+        
 
     ## check inchworm kmer content of reference sequences
 
     &process_cmd("$ENV{TRINITY_HOME}/util/misc/print_kmers.pl $ref_trans_fa 24 > ref_kmers");
 
     
-    my $has_all_iworm_kmers = &check_inchworm_kmer_content($ref_trans_fa, "trinity_out_dir/inchworm.K25.L25.fa");
+    my $iworm_file = (-s "trinity_out_dir/inchworm.K25.L25.fa") ? "trinity_out_dir/inchworm.K25.L25.fa" : "trinity_out_dir/inchworm.K25.L25.DS.fa";
+    my $has_all_iworm_kmers = &check_inchworm_kmer_content($ref_trans_fa, $iworm_file);
 
 
     ## examine pruning of precious edges
@@ -394,7 +426,7 @@ sub execute_seq_pipe {
 
     
     # reconstruction test
-    $cmd = "$ENV{TRINITY_HOME}/Analysis/FL_reconstruction_analysis/FL_trans_analysis_pipeline.pl --target $ref_trans_fa --query trinity_out_dir.Trinity.fasta --reuse --out_prefix FL.test  --allow_non_unique_mappings | tee FL_analysis.txt";
+    $cmd = "$ENV{TRINITY_HOME}/Analysis/FL_reconstruction_analysis/FL_trans_analysis_pipeline.pl --target $ref_trans_fa --query trinity_out_dir.Trinity.fasta --no_reuse --out_prefix FL.test  --allow_non_unique_mappings --min_per_length 90 | tee FL_analysis.txt";
 
     &process_cmd("echo $cmd > FL.cmd");
     my @results = `$cmd`;
@@ -422,6 +454,11 @@ sub execute_seq_pipe {
     }
     
     
+
+    # cleanup really needed after all. 
+    system("rm -rf ./trinity_out_dir");
+
+    
     return ($num_FL, $num_entries, $num_transcripts, $has_all_iworm_kmers, $has_all_precious_edges, $num_LR_threaded);
     
     
@@ -440,9 +477,6 @@ sub process_cmd {
 
     return;
 }
-
-
-
 
 
 
