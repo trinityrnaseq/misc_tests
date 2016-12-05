@@ -12,10 +12,22 @@ my $usage = "\n\n\tusage: $0 < list of audit.txt files from stdin \n\n\n";
 my $MIN_SEQ_LEN = 1000;
 
 
+
+my $total_genes = 0;
+my $total_genes_reco = 0;
+
+my $total_refseq_trans = 0;
+my $total_iso_reco_count = 0;
+my $total_extra = 0;
+
+print join("\t", "gene_id", "reco_gene_flag", "num_refseqs", "num_FL_trin", "num_extra_trin") . "\n";
+
 while (<>) {
     chomp;
-    my $dir = basedir($_);
+    my $dir = dirname($_);
     
+    my $gene_id = basename($dir);
+
     my $trin_fasta_file = "$dir/trinity_out_dir.Trinity.fasta";
     
     my $fasta_reader = new Fasta_reader($trin_fasta_file);
@@ -24,11 +36,72 @@ while (<>) {
     my %trin_lens = &get_seq_lens(%trin_seqs);
 
     my $FL_reco_file = "$dir/FL.test.pslx.maps";
-    my %reco = &parse_reco($FL_reco_file);
+    my %reco_trin_to_refseq = &parse_reco($FL_reco_file);
+    my $num_FL_trin = scalar(keys %reco_trin_to_refseq);
 
+    my $refseqs_fa = "$dir/refseqs.fa";
+    my @refseq_accs = &get_accs($refseqs_fa);
+
+    my $num_refseqs = scalar(@refseq_accs);
     
+    my @failed_reco_refseqs;
+    my %reco_refseq = map { + $_ => 1 } values %reco_trin_to_refseq;
+    foreach my $acc (@refseq_accs) {
+        unless ($reco_refseq{$acc}) {
+            push (@failed_reco_refseqs, $acc);
+        }
+    }
+    my $num_failed_reco_refseqs = scalar(@failed_reco_refseqs);
+    
+    my @extra_trin_accs;
+    foreach my $trin_acc (keys %trin_seqs) {
+        if (! exists $reco_trin_to_refseq{$trin_acc}) {
+            if ($trin_lens{$trin_acc} >= $MIN_SEQ_LEN) {
+                push (@extra_trin_accs, $trin_acc);
+            }
+        }
+    }
+
+    my $num_extra_trin = scalar(@extra_trin_accs);
+
+    my $reco_gene_flag = ($num_failed_reco_refseqs == 0) ? "YES" : "NO";
+    
+    print join("\t", $gene_id, $reco_gene_flag, $num_refseqs, $num_FL_trin, $num_extra_trin) . "\n";
+    
+    $total_genes++;
+    if ($reco_gene_flag eq "YES") {
+        $total_genes_reco++;
+    }
+    $total_refseq_trans += $num_refseqs;
+    $total_iso_reco_count += $num_FL_trin;
+    $total_extra += $num_extra_trin;
 
 }
+
+print "\n\n";
+print join("\t", "Total_Genes", "Total_Genes_Reco", "Total_RefTrans", "Total_RefTransReco", "Total_extra_trans") . "\n";
+print join("\t", $total_genes, $total_genes_reco, $total_refseq_trans, $total_iso_reco_count, $total_extra) . "\n";
+
+
+exit(0);
+
+
+####
+sub get_accs {
+    my ($fasta_file) = @_;
+
+    my @accs;
+
+    open (my $fh, $fasta_file) or die $!;
+    while (<$fh>) {
+        if (/^>(\S+)/) {
+            push (@accs, $1);
+        }
+    }
+
+    return(@accs);
+}
+
 
 ####
 sub parse_reco {
