@@ -1,7 +1,16 @@
 ## redoing using new framework
 
-
+### for longest isoform only test:
 /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_isoforms 1 --longest_isoform_only --min_refseq_length 1000
+
+
+
+### for alt splice gene-level test:
+ /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_refseq_length 1000
+
+
+
+
 
 # sim reads:
 
@@ -34,10 +43,13 @@ for readlength in 50 75 100 150 300
 do
 
 ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/info_files_to_eval_cmds.pl Seqs_dir.R${readlength}.info SE_${readlength} --strict --paired_as_single --strand_specific > trineval_SE_${readlength}.cmds 
+echo done SE_${readlength}
 
 ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/info_files_to_eval_cmds.pl Seqs_dir.R${readlength}.info PE_${readlength} --strict  --strand_specific > trineval_PE_${readlength}.cmds
+echo done PE_${readlength}
 
 ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/info_files_to_eval_cmds.pl Seqs_dir.R${readlength}.info SEwLR_${readlength} --strict --paired_as_single --strand_specific --incl_ref_trans > trineval_SEwLR_${readlength}.cmds
+echo done SEwLR_${readlength}
 
 done
 
