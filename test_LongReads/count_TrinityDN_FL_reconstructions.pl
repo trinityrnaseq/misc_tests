@@ -20,8 +20,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --psl_stats <string>        psl_stats input file
 #
-#  --ref_trans <string>        reference transcript fasta file
-#                            
 #  --gene_trans_map <string>   gene-trans-map file
 #
 # Optional:
@@ -43,14 +41,12 @@ __EOUSAGE__
 
 my $help_flag;
 my $psl_stats_file;
-my $ref_trans_file;
 my $gene_trans_map_file;
 my $strand_specific_flag = 0;
 
 &GetOptions ( 'h' => \$help_flag,
 
               'psl_stats=s' => \$psl_stats_file,
-              'ref_trans=s' => \$ref_trans_file,
               'gene_trans_map=s' => \$gene_trans_map_file,
 
               'min_per_id=i' => \$min_per_id,
@@ -64,7 +60,7 @@ if ($help_flag) {
     die $usage;
 }
 
-unless($psl_stats_file && $ref_trans_file && $gene_trans_map_file) {
+unless($psl_stats_file && $gene_trans_map_file) {
     die $usage;
 }
 
@@ -90,7 +86,7 @@ main: {
         $query_seen{$query} = 1;
         
         if ($strand_specific_flag && $strand ne '+') {
-            continue;
+            next;
         }
 
         if ($per_id >= $min_per_id

@@ -105,6 +105,11 @@ unless ($ref_trans_fa && $OUT_DIR) {
 }
 
 
+if (@ARGV) {
+    die "Error, dont understand params: @ARGV";
+}
+
+
 unless ($ENV{TRINITY_HOME}) {
     $ENV{TRINITY_HOME} = "$FindBin::Bin/../../trinityrnaseq/";
 }
