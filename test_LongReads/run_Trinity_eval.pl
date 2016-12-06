@@ -14,14 +14,11 @@ use List::Util qw (shuffle);
 
 my $help_flag;
 my $ref_trans_fa;
-my $NUM_FAILURES_TO_CAPTURE = 10;
 my $BFLY_JAR = "$ENV{TRINITY_HOME}/Butterfly/Butterfly.jar";
-my $MIN_REFSEQ_LENGTH = 100;
 my $INCLUDE_REF_TRANS = 0;
 my $OUT_DIR = "testing_dir";
-my $READ_LENGTH = 76;
-my $FRAG_LENGTH = 300;
 my $MIN_CONTIG_LENGTH = 200;
+
 
 
 my $usage = <<__EOUSAGE__;
@@ -35,10 +32,6 @@ my $usage = <<__EOUSAGE__;
 #  * Common Opts:
 #
 #  --bfly_jar|B <string>                  Butterfly jar file
-#
-#  --read_length <int>                    read length (defalt: $READ_LENGTH)
-#
-#  --frag_length <int>                    fragment length (default: $FRAG_LENGTH)
 #
 #  --out_dir|O <string>                   output directory name (default: $OUT_DIR)
 #
@@ -69,20 +62,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  --no_cleanup                         no cleaning up of trinity output.  
 #
-#  --wgsim                              use wgsim for simulating reads
+#  --wgsim                              use wgsim-simulated reads
 #
-#  --strand_specific                    sets to strand-specific mode (FR)  (! for use with wgsim)
-#
-####
-#  ** Mutate the reads
-#
-#  --read_mut_rate <float>              simulated read error rate (default: 0)  (value between 0 and 0.25 allowed)
-#
-#  --ref_mut_insert_rate <float>        mutate insertions in the ref sequence (default: 0) ( values allowed 0<x<0.25)
-#
-#  --ref_mut_delete_rate <float>        mutate deletions in the ref sequence (default: 0)  ( values allowed 0<x<0.25)
-#
-#  --ref_mut_subst_rate <float>         mutate substitutions in ref seq (default: 0) (values allowed 0<x<0.25)
+#  --strand_specific                    sets to strand-specific mode (FR)
 #
 ############################################################################################
 
@@ -107,15 +89,8 @@ my $SHUFFLE = 0;
 
 my $MAX_ISOFORMS = -1;
 
-my $READ_MUT_RATE = 0;
-
-my $REF_MUT_INSERT_RATE = 0;
-my $REF_MUT_DELETE_RATE = 0;
-my $REF_MUT_SUBST_RATE = 0;
-
 my $STRICT = 0;
 
-my $MAX_ITER = 0;
 my $use_wgsim_flag = 0;
 my $strand_specific_flag = 0;
 
@@ -129,7 +104,6 @@ my $strand_specific_flag = 0;
               'out_dir|O=s' => \$OUT_DIR,
               'bfly_jar|B=s' => \$BFLY_JAR,
 
-              'min_refseq_length=i' => \$MIN_REFSEQ_LENGTH,
               'incl_ref_trans' => \$INCLUDE_REF_TRANS,
               
               'ref_trans_only' => \$REF_TRANS_ONLY,

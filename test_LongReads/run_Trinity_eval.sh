@@ -8,7 +8,7 @@ reuse GCC-4.9
 
 
 
-CMD="`dirname $0`/run_Trinity_eval.wgsim.pl $*"
+CMD="`dirname $0`/run_Trinity_eval.pl $*"
 
 eval $CMD
 
