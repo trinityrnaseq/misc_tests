@@ -22,9 +22,12 @@ my $total_extra = 0;
 
 print join("\t", "gene_id", "reco_gene_flag", "num_refseqs", "num_FL_trin", "num_extra_trin") . "\n";
 
+my $counter = 0;
 while (<>) {
     chomp;
     my $dir = dirname($_);
+
+    $counter++;
     
     my $gene_id = basename($dir);
 
@@ -78,9 +81,11 @@ while (<>) {
 
 }
 
-print "\n\n";
-print join("\t", "Total_Genes", "Total_Genes_Reco", "Total_RefTrans", "Total_RefTransReco", "Total_extra_trans") . "\n";
-print join("\t", $total_genes, $total_genes_reco, $total_refseq_trans, $total_iso_reco_count, $total_extra) . "\n";
+if ($counter > 1) {
+    print "\n\n";
+    print join("\t", "Total_Genes", "Total_Genes_Reco", "Total_RefTrans", "Total_RefTransReco", "Total_extra_trans") . "\n";
+    print join("\t", $total_genes, $total_genes_reco, $total_refseq_trans, $total_iso_reco_count, $total_extra) . "\n";
+}
 
 
 exit(0);

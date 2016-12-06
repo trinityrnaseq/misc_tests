@@ -29,6 +29,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  --ref_trans|R <string>                 reference transcriptome
 #
+#  --left <string>                        left reads fa file
+#
+#  --right <string>                       right reads fa file
+#
 #  * Common Opts:
 #
 #  --bfly_jar|B <string>                  Butterfly jar file
@@ -40,13 +44,7 @@ my $usage = <<__EOUSAGE__;
 #  --incl_ref_trans                     include the ref transcript as a long 
 #                                       read (default: off)
 #
-#  --ref_trans_only                     only target the ref transcript itself
-#                                       (no simulation of short reads)
-#
 #  * Misc Opts:
-#
-#  --min_refseq_length <int>            min length for a reference transcript 
-#                                       sequence (default: $MIN_REFSEQ_LENGTH)
 #
 #  --incl_ref_dot                       include dot files for the reference sequences
 #
@@ -62,8 +60,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --no_cleanup                         no cleaning up of trinity output.  
 #
-#  --wgsim                              use wgsim-simulated reads
-#
 #  --strand_specific                    sets to strand-specific mode (FR)
 #
 ############################################################################################
@@ -74,10 +70,7 @@ __EOUSAGE__
     ;
 
 
-my $VERBOSITY_LEVEL = 10;
-
-my $REF_TRANS_ONLY = 0;
-
+my $VERBOSITY_LEVEL = 15;
 
 my $NO_CLEANUP = 0;
 
@@ -91,22 +84,26 @@ my $MAX_ISOFORMS = -1;
 
 my $STRICT = 0;
 
-my $use_wgsim_flag = 0;
+
 my $strand_specific_flag = 0;
+
+my $left_file = "";
+my $right_file = "";
 
 
 &GetOptions ( 'h' => \$help_flag,
 
               # required
               'ref_trans|R=s' => \$ref_trans_fa,
+
+              'left=s' => \$left_file,
+              'right=s' => \$right_file,
               
               # optional
               'out_dir|O=s' => \$OUT_DIR,
               'bfly_jar|B=s' => \$BFLY_JAR,
 
               'incl_ref_trans' => \$INCLUDE_REF_TRANS,
-              
-              'ref_trans_only' => \$REF_TRANS_ONLY,
               
               'strict' => \$STRICT,
 
@@ -118,19 +115,8 @@ my $strand_specific_flag = 0;
               
               'min_contig_length=i' => \$MIN_CONTIG_LENGTH,
               
-              'read_length=i' => \$READ_LENGTH,
-              'frag_length=i' => \$FRAG_LENGTH,
-              
-              'read_mut_rate=f' => \$READ_MUT_RATE,
-              
-              'ref_mut_insert_rate=f' => \$REF_MUT_INSERT_RATE,
-              'ref_mut_delete_rate=f' => \$REF_MUT_DELETE_RATE,
-              'ref_mut_subst_rate=f' => \$REF_MUT_SUBST_RATE,
-              
               'no_cleanup' => \$NO_CLEANUP,
               
-              'wgsim' => \$use_wgsim_flag,
-
               'strand_specific' => \$strand_specific_flag,
 );
 
@@ -141,7 +127,7 @@ if ($help_flag) {
 
 
 
-unless ($ref_trans_fa && $BFLY_JAR) {
+unless ($ref_trans_fa && $BFLY_JAR && $left_file && $right_file) {
     die $usage;
 }
 
@@ -159,9 +145,7 @@ if ($PAIRED_AS_SINGLE) {
     $PAIRED_AS_SINGLE = "--TREAT_PAIRS_AS_SINGLE";
 }
 
-if ( ($REF_MUT_SUBST_RATE || $REF_MUT_INSERT_RATE || $REF_MUT_DELETE_RATE) && ! $INCLUDE_REF_TRANS) {
-    die "Error, ref mut rate set, but not including ref trans in reconstruction.  Use --incl_ref_trans";
-}
+
 
 
 main: {
@@ -182,7 +166,7 @@ main: {
 
     my ($num_reco_FL, $num_ref_entries, $num_trans_reco,
         $has_all_iworm_kmers, $has_all_precious_edges, 
-        $num_LR_threaded) = &execute_seq_pipe($ref_trans_fa);
+        $num_LR_threaded) = &execute_seq_pipe($ref_trans_fa, $left_file, $right_file);
     # num_FL: number of transcripts reconstructed as full-length
     # num_entries: number of reference isoforms
     # num_transcripts: total number of Trinity transcripts reconstructed.
@@ -211,6 +195,9 @@ main: {
     print $ofh $summary;
     print $summary;
     close $ofh;
+
+    &process_cmd("echo " . cwd() . "/audit.txt | $FindBin::Bin/audit_summary_stats.reexamine.pl | tee audit2.txt");
+    
     
     exit(0);
 }
@@ -219,52 +206,16 @@ main: {
 
 ####
 sub execute_seq_pipe {
-    my ($ref_trans_fa, $workdir) = @_;
+    my ($ref_trans_fa, $left_file, $right_file) = @_;
     
-            
+
+    my $cmd = "ln -sf $ref_trans_fa $left_file $right_file .";
+    &process_cmd($cmd);
+    
+        
     my $num_entries = `grep '>' $ref_trans_fa | wc -l `;
     $num_entries =~ /(\d+)/ or die "Error, cannot parse number of entries from $ref_trans_fa";
     $num_entries = $1;
-    
-    unless ($REF_TRANS_ONLY) {
-        
-        my $cmd = "";
-
-        if ($use_wgsim_flag) {
-            
-            # simulate reads:
-            $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_illuminaPE_from_transcripts.wgsim.pl --transcripts $ref_trans_fa "
-                . " --read_length $READ_LENGTH "
-                . " --frag_length $FRAG_LENGTH "
-                . " --depth_of_cov 200 "
-                ;
-            
-            if ($strand_specific_flag) {
-                $cmd .= " --SS_lib_type FR ";
-            }
-            
-        }
-        else {
-
-            # default, use home-grown simple simulator
-            
-            # simulate reads:
-            $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_illuminaPE_from_transcripts.pl --transcripts $ref_trans_fa --include_volcano_spread "
-                . " --require_proper_pairs "
-                . " --read_length $READ_LENGTH "
-                . " --frag_length $FRAG_LENGTH "
-                . " --max_depth 4 --frag_length_step 200 "
-                ;
-            
-            if ($READ_MUT_RATE) {
-                $cmd .= " --error_rate $READ_MUT_RATE ";
-            }
-        }
-        
-        &process_cmd($cmd) unless (-s "reads.left.simPE.fa"); # keep sim reads if already generated earlier.
-        
-    }
-    
     
     # run Trinity
     
@@ -273,7 +224,7 @@ sub execute_seq_pipe {
         $bfly_jar_txt = " --bfly_jar $BFLY_JAR ";
     }
     
-    my $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 4G --bflyHeapSpaceMax 10G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
+    $cmd = "set -o pipefail; $ENV{TRINITY_HOME}/Trinity --seqType fa --max_memory 4G --bflyHeapSpaceMax 10G --max_reads_per_graph 10000000 --group_pairs_distance 10000 --verbose_level 2 --CPU 1 ";
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }
@@ -281,36 +232,16 @@ sub execute_seq_pipe {
         $cmd .= " --full_cleanup ";
     }
     
-
-    if ($REF_TRANS_ONLY) {
-        $cmd .= " --single $ref_trans_fa --SS_lib_type F ";
+    if ($INCLUDE_REF_TRANS) {
+        $cmd .= " --long_reads $ref_trans_fa ";
     }
-    else {
-        
-        if ($INCLUDE_REF_TRANS) {
-	    
-            if ($REF_MUT_SUBST_RATE || $REF_MUT_INSERT_RATE || $REF_MUT_DELETE_RATE) { 
-                
-                &process_cmd("$ENV{TRINITY_HOME}/util/misc/randomly_mutate_seqs.pl --fasta $ref_trans_fa "
-                             . " --subst_rate $REF_MUT_SUBST_RATE "
-                             . " --insert_rate $REF_MUT_INSERT_RATE "
-                             . " --delete_rate $REF_MUT_DELETE_RATE "
-                             . " > refseqs.mut.fa");
-                
-                $cmd .= " --long_reads refseqs.mut.fa ";
-                
-            }
-            else {
-                $cmd .= " --long_reads $ref_trans_fa ";
-            }
-        }
-        
-        $cmd .= " --left reads.left.simPE.fa --right reads.right.simPE.fa ";
-
-        if ($strand_specific_flag) {
-            $cmd .= " --SS_lib_type FR ";
-        }
+    
+    $cmd .= " --left $left_file --right $right_file ";
+    
+    if ($strand_specific_flag) {
+        $cmd .= " --SS_lib_type FR ";
     }
+    
     
     $cmd .= " --CPU 2 $bfly_jar_txt --inchworm_cpu 1 --min_contig_length $MIN_CONTIG_LENGTH --trinity_complete ";
 

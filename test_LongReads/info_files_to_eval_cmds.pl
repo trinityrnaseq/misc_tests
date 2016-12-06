@@ -5,7 +5,7 @@ use warnings;
 use Cwd;
 use FindBin;
 
-my $usage = "usage: $0 fasta_file_targets.list.txt output_basedir [eval cmds]\n\n";
+my $usage = "usage: $0 info_files.list.txt output_basedir [eval cmds]\n\n";
 
 my $files_listing_file = $ARGV[0] or die $usage;
 my $output_basedir = $ARGV[1] or die $usage;
@@ -27,15 +27,15 @@ main: {
     }
     
     foreach my $file (@files) {
+
+        my $line = `cat $file`;
+        chomp $line;
+        my ($refseq_fa_file, $left_fa, $right_fa) = split(/\t/, $line);
         
-        my @pts = split(/\//, $file);
+        my @pts = split(/\//, $refseq_fa_file);
         my $gene_name = $pts[-2];
 
-        unless ($file =~ /^\//) {
-            $file = "$basedir/$file";
-        }
-        
-        my $cmd = "$eval_script -R $file -O $output_basedir/$gene_name @ARGV";
+        my $cmd = "$eval_script -R $refseq_fa_file --left $left_fa --right $right_fa -O $output_basedir/$gene_name @ARGV";
         
         print "$cmd\n";
     }
