@@ -1,22 +1,51 @@
-
-# run tests elsewhere due to disk space requirements:
-
-cd /home/unix/bhaas/regevtmp/bhaas/TrinLRtesting
-
-# write reference targets out to Seqs_dir/
-
-~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl  -R ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/gencode.alt_splice.min2max5.cdhit.min2k.fasta  --by_Gene refGenes_dir
+## redoing using new framework
 
 
-######
+/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_isoforms 1 --longest_isoform_only --min_refseq_length 1000
 
-find Seqs_dir/ -regex ".*refseqs.fa" | tee files.list
+# sim reads:
 
-~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/fa_files_to_eval_cmds.pl files.list PE_76_300 --strict --incl_ref_trans | tee PE_76_300.cmds
+for readlength in 50 75 100 150 300
+do
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/write_simulate_read_commands.pl files.list --wgsim --strand_specific --read_length ${readlength} --frag_length 500 > write_sim_${readlength}_500.cmds
+echo done $readlength
+done
+
+c write*cmds > write_sim_all.CMDS
+
+~/utilities/trinity_uger_cmd_processor.py write_sim_all.CMDS 200 short
 
 
-# run cmds on UGER
+## get info files:
 
+for readlength in 50 75 100 150 300
+do
+find Seqs_dir/ -regex ".*reads.wgsim_R${readlength}_F500_D200_FR.info" > Seqs_dir.R${readlength}.info
+echo done $readlength
+done
+
+
+
+
+## run Trinity-eval
+
+
+for readlength in 50 75 100 150 300
+do
+
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/info_files_to_eval_cmds.pl Seqs_dir.R${readlength}.info SE_${readlength} --strict --paired_as_single --strand_specific > trineval_SE_${readlength}.cmds 
+
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/info_files_to_eval_cmds.pl Seqs_dir.R${readlength}.info PE_${readlength} --strict  --strand_specific > trineval_PE_${readlength}.cmds
+
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/info_files_to_eval_cmds.pl Seqs_dir.R${readlength}.info SEwLR_${readlength} --strict --paired_as_single --strand_specific --incl_ref_trans > trineval_SEwLR_${readlength}.cmds
+
+done
+
+
+
+
+
+## analyze results
 
 ######
 
@@ -25,8 +54,4 @@ analyze results:
 find PE_76_300 -regex ".*audit.txt" -exec cat {} \; > auditsummary.txt
 
  ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.pl auditsummary.txt 
-
-
-grep NO auditsummary.txt  | tee auditsummary.txt.NO
-
 
