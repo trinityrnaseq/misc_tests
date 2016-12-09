@@ -39,7 +39,8 @@ while (<>) {
     my %trin_lens = &get_seq_lens(%trin_seqs);
 
     my $FL_reco_file = "$dir/FL.test.pslx.maps";
-    my %reco_trin_to_refseq = &parse_reco($FL_reco_file);
+    my %reco_refseq;
+    my %reco_trin_to_refseq = &parse_reco($FL_reco_file, \%reco_refseq);
     my $num_FL_trin = scalar(keys %reco_trin_to_refseq);
 
     my $refseqs_fa = "$dir/refseqs.fa";
@@ -48,7 +49,7 @@ while (<>) {
     my $num_refseqs = scalar(@refseq_accs);
     
     my @failed_reco_refseqs;
-    my %reco_refseq = map { + $_ => 1 } values %reco_trin_to_refseq;
+
     foreach my $acc (@refseq_accs) {
         unless ($reco_refseq{$acc}) {
             push (@failed_reco_refseqs, $acc);
@@ -110,7 +111,7 @@ sub get_accs {
 
 ####
 sub parse_reco {
-    my ($reco_file) = @_;
+    my ($reco_file, $reco_refseq_href) = @_;
 
     my %trin_to_reco_acc;
     
@@ -122,7 +123,9 @@ sub parse_reco {
         my @trin_contigs = split(/,/, $trinity_contigs);
         foreach my $trin (@trin_contigs) {
             
-            $trin_to_reco_acc{$trin} = $trans_acc;
+            $trin_to_reco_acc{$trin}->{$trans_acc} = 1;
+            
+            $reco_refseq_href->{$trans_acc} = 1;
         }
     }
     close $fh;

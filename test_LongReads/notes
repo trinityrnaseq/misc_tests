@@ -59,6 +59,17 @@ done
 
 ## analyze results
 
+
+for readlength in 50 75 100 150 300 
+do
+find SE_${readlength} -maxdepth 3 -regex ".*audit.txt" | ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.reexamine.pl > SE_${readlength}.audit2_summary & 
+find PE_${readlength} -maxdepth 3 -regex ".*audit.txt" | ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.reexamine.pl > PE_${readlength}.audit2_summary & 
+find SEwLR_${readlength} -maxdepth 3 -regex ".*audit.txt" | ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.reexamine.pl > SEwLR_${readlength}.audit2_summary & 
+done
+
+
+
+
 ######
 
 analyze results:
