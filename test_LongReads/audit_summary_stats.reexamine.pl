@@ -117,9 +117,13 @@ sub parse_reco {
     open (my $fh, $reco_file) or die $!;
     while (<$fh>) {
         chomp;
-        my ($trans_acc, $trinity_contig) = split(/\t/);
+        my ($trans_acc, $trinity_contigs) = split(/\t/);
         
-        $trin_to_reco_acc{$trinity_contig} = $trans_acc;
+        my @trin_contigs = split(/,/, $trinity_contigs);
+        foreach my $trin (@trin_contigs) {
+            
+            $trin_to_reco_acc{$trin} = $trans_acc;
+        }
     }
     close $fh;
     
