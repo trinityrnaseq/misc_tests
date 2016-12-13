@@ -12,6 +12,9 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use List::Util qw (shuffle);
 
+my $VERBOSITY_LEVEL = 10;
+
+
 my $help_flag;
 my $ref_trans_fa;
 my $BFLY_JAR = "$ENV{TRINITY_HOME}/Butterfly/Butterfly.jar";
@@ -69,8 +72,6 @@ __EOUSAGE__
 
     ;
 
-
-my $VERBOSITY_LEVEL = 15;
 
 my $NO_CLEANUP = 0;
 
