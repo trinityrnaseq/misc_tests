@@ -1,12 +1,12 @@
 ## redoing using new framework
 
 ### for longest isoform only test:
-/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_isoforms 1 --longest_isoform_only --min_refseq_length 1000
+/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_isoforms 1 --longest_isoform_only --min_refseq_length 1000 --restrict_to_genes missed_at_least_once.dat.accs
 
 
 
 ### for alt splice gene-level test:
- /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_refseq_length 1000
+ /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/partition_target_transcripts.pl -R gencode_v19.isoforms_distilled.cdna  --by_Gene --min_refseq_length 1000   --restrict_to_genes missed_at_least_once.dat.accs 
 
 
 
@@ -14,9 +14,14 @@
 
 # sim reads:
 
+find Seqs_dir/ -regex ".*fa" | tee files.list
+
+
+fraglength=600
+
 for readlength in 50 75 100 150 300
 do
-~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/write_simulate_read_commands.pl files.list --wgsim --strand_specific --read_length ${readlength} --frag_length 500 > write_sim_${readlength}_500.cmds
+~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/write_simulate_read_commands.pl files.list --wgsim --strand_specific --read_length ${readlength} --frag_length ${fraglength} > write_sim_${readlength}_${fraglength}.cmds
 echo done $readlength
 done
 
@@ -29,7 +34,7 @@ c write*cmds > write_sim_all.CMDS
 
 for readlength in 50 75 100 150 300
 do
-find Seqs_dir/ -regex ".*reads.wgsim_R${readlength}_F500_D200_FR.info" > Seqs_dir.R${readlength}.info
+find Seqs_dir/ -regex ".*reads.wgsim_R${readlength}_F${fraglength}_D200_FR.info" > Seqs_dir.R${readlength}.info
 echo done $readlength
 done
 
@@ -69,12 +74,14 @@ done
 
 
 
-
 ######
 
 analyze results:
 
-find PE_76_300 -regex ".*audit.txt" -exec cat {} \; > auditsummary.txt
+# get table of reco counts 
+/home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.2.pl 
 
- ~/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.pl auditsummary.txt 
+# get matrix of yes/no for reco
+ audit_summary_stats.2.generate_reco_matrix.pl > audit2.matrix
+
 

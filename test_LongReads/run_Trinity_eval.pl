@@ -212,7 +212,10 @@ sub execute_seq_pipe {
     my $cmd = "ln -sf $ref_trans_fa $left_file $right_file .";
     &process_cmd($cmd);
     
-        
+    if (-d "trinity_out_dir") {
+        `rm -rf ./trinity_out_dir`;
+    }
+    
     my $num_entries = `grep '>' $ref_trans_fa | wc -l `;
     $num_entries =~ /(\d+)/ or die "Error, cannot parse number of entries from $ref_trans_fa";
     $num_entries = $1;
@@ -315,12 +318,8 @@ sub execute_seq_pipe {
     
     # compare refseqs to the trinity assemblies
     $cmd = "$ENV{TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl $ref_trans_fa trinity_out_dir.Trinity.fasta 98 | tee ref_compare.ascii_illus";
-    if (! -s "ref_compare.ascii_illus") {
-        &process_cmd($cmd);
-    }
-    else {
-        &process_cmd("cat ref_compare.ascii_illus");
-    }
+    &process_cmd($cmd);
+    
 
     ## get number of transcripts reconstructed:
     $cmd = "grep '>' trinity_out_dir.Trinity.fasta | wc -l";

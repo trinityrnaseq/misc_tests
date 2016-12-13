@@ -49,7 +49,10 @@ my $usage = <<__EOUSAGE__;
 #
 #    --longest_isoform_only               restricts to only single longest isoform per gene.
 #
+#    --restrict_to_genes <string>         file containing lists of gene accessions to restrict to.
+#
 ############################################################################################
+
 
 
 __EOUSAGE__
@@ -60,6 +63,8 @@ __EOUSAGE__
 
 my $BY_GENE_FLAG = 0;
 my $LONGEST_ISOFORM_ONLY_FLAG = 0;
+
+my $restrict_to_genes_file = "";
 
 &GetOptions ( 'h' => \$help_flag,
                             
@@ -77,7 +82,9 @@ my $LONGEST_ISOFORM_ONLY_FLAG = 0;
               
               'longest_isoform_only' => \$LONGEST_ISOFORM_ONLY_FLAG,
               
+              'restrict_to_genes=s' => \$restrict_to_genes_file,
 );
+
 
 
 if ($help_flag) {
@@ -109,14 +116,27 @@ main: {
 
     my %reorganized_fasta_seqs = &reorganize_fasta_seqs(\%fasta_seqs, $BY_GENE_FLAG);
 
-        
-        
+    
+    my %restricted_genes;
+    if ($restrict_to_genes_file) {
+        my @gene_ids = `cat $restrict_to_genes_file`;
+        chomp @gene_ids;
+        %restricted_genes = map { + $_ => 1 } @gene_ids;
+    }
+    
     my $total_counter = 0;
 
     my @accs = keys %reorganized_fasta_seqs;
 
+    my %seen;
 
     foreach my $acc (@accs) {
+        
+        if (%restricted_genes && ! exists $restricted_genes{$acc}) {
+            # skipping, not in the restricted list.
+            next;
+        }
+        $seen{$acc} = 1;
         
         chdir $BASEDIR or die "Error, cannot cd to $BASEDIR";
         
@@ -171,6 +191,23 @@ main: {
         $total_counter++;
         if ($total_counter % 100 == 0) {
             print STDERR "\n[$total_counter]\n";
+        }
+    }
+    
+
+    if (%restricted_genes) {
+        # ensure we got them all
+        for my $seen_acc (keys %seen) {
+            if (exists $restricted_genes{$seen_acc}) {
+                delete $restricted_genes{$seen_acc};
+            }
+        }
+
+        if (%restricted_genes) {
+            die "Error, missing entries for restricted gene list entries: " . Dumper(\%restricted_genes);
+        }
+        else {
+            print STDERR "-all restricted gene entries identified and reported.\n";
         }
     }
     
