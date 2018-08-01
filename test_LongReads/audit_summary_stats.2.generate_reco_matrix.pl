@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-my @ranges = (50, 75, 100, 150); # removing 300 due to reco problems
+my @ranges = (50, 75, 100, 150, 300);
 
 my @read_types = ("SE", "PE", "SEwLR");
 
@@ -29,7 +29,8 @@ foreach my $gene (sort keys %reco_matrix) {
     foreach my $exp_type (@exp_types) {
         my $reco_flag = $reco_matrix{$gene}->{$exp_type};
         unless (defined $reco_flag) {
-            die "Error, missing result for $gene / $exp_type ";
+            print STDERR "Error, missing result for $gene / $exp_type\n";
+            $reco_flag = 0;
         }
         push (@vals, $reco_flag);
     }

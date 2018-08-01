@@ -32,6 +32,11 @@ while (<>) {
     my $gene_id = basename($dir);
 
     my $trin_fasta_file = "$dir/trinity_out_dir.Trinity.fasta";
+
+    if (! -e $trin_fasta_file) {
+        print STDERR "ERROR: Cannot locate file: $trin_fasta_file\n";
+        next;
+    }
     
     my $fasta_reader = new Fasta_reader($trin_fasta_file);
     my %trin_seqs = $fasta_reader->retrieve_all_seqs_hash();

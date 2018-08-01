@@ -59,7 +59,9 @@ echo done SEwLR_${readlength}
 done
 
 
+c trineval*cmds > all.CMDS
 
+~/utilities/trinity_uger_cmd_processor.py all.CMDS 50 short
 
 
 ## analyze results
@@ -82,6 +84,7 @@ analyze results:
 /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.2.pl 
 
 # get matrix of yes/no for reco
- audit_summary_stats.2.generate_reco_matrix.pl > audit2.matrix
+ /home/unix/bhaas/GITHUB/trinityrnaseq.misc_tests/test_LongReads/audit_summary_stats.2.generate_reco_matrix.pl > audit2.matrix
+
 
 
