@@ -1,0 +1,96 @@
+---
+title: "mouse_read_kmer_cov"
+author: "Brian Haas"
+date: "9/24/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse) 
+```
+
+```{r}
+
+data = read.table(gzfile("drosoph.pair_stats_w_seq_error_counts.100k.txt.gz"), header=T, row.names=1)
+
+```
+
+
+```{r}
+df = data.frame(meanval = c(data$left_mean_cov, data$right_mean_cov),                                     
+                medianval = c(data$left_median_cov, data$right_median_cov),                               
+                stdev = c(data$left_stdev, data$right_stdev),                                             
+                num_errors = as.factor(c(data$left_errors, data$right_errors)) )
+
+
+
+
+```
+
+
+## Stats for individual reads
+
+
+```{r}
+df %>% filter(as.numeric(num_errors) < 10) %>% ggplot(aes(stdev / meanval, color=num_errors, fill=num_errors)) + geom_density(alpha=0.1) + xlim(0, 2.5)
+```
+
+
+## stats for pairs, using aggregate stats.
+
+
+```{r}
+
+num_errors_df = data[,c('left_errors', 'right_errors')]
+
+num_errors = apply(num_errors_df, 1, max)
+
+
+df = data.frame(meanval = data$mean_cov,                                     
+                medianval = data$median_cov,                               
+                stdev = data$stdev,                                             
+                num_errors = as.factor(num_errors) )
+```
+
+
+
+
+
+
+```{r}
+df %>% filter(as.numeric(num_errors) < 10) %>% ggplot(aes(stdev / meanval, color=num_errors, fill=num_errors)) + geom_density(alpha=0.1) + xlim(0,2.5)
+```
+
+## Pair aggregate stats, use max vals
+
+```{r}
+num_errors_df = data[,c('left_errors', 'right_errors')]
+
+num_errors = apply(num_errors_df, 1, max)
+
+
+df = data.frame(meanval = data$mean_cov,                                     
+                medianval = data$median_cov,                               
+                stdev = pmax(data$left_stdev, data$right_stdev),                                             
+                num_errors = as.factor(num_errors) )
+
+
+df %>% filter(as.numeric(num_errors) < 10) %>% ggplot(aes(stdev / meanval, color=num_errors, fill=num_errors)) + geom_density(alpha=0.1) + xlim(0,2.5)
+```
+
+
+## Examine Coeff of var vs. mean
+
+```{r}
+df %>% filter(as.numeric(num_errors) < 10) %>% ggplot(aes(y=stdev / meanval, x=log2(meanval), color=num_errors, fill=num_errors)) + geom_point(alpha=0.1) + ylim(0, 2.5)
+```
+
+## examine quantiles for CV
+```{r}
+quantile(df$stdev/df$meanval, prob=seq(0,1,0.01))
+```
+
+
+
+
