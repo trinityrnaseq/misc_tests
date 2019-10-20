@@ -19,7 +19,6 @@ my $usage = <<__EOUSAGE__;
 #  
 #  Optional:
 #
-#  --CuffMode              cufflinks mode
 #  --bfly_opts <string>
 #  --max_genes <int>       default: 100
 #  
@@ -35,14 +34,12 @@ __EOUSAGE__
 my $help_flag;
 my $refSeqs_file;
 my $num_threads;
-my $cuff_mode;
 my $max_genes = 100;
 my $bfly_opts = "";
 
 
 &GetOptions( 'h' => \$help_flag,
              'refSeqs=s' => \$refSeqs_file,
-             'CuffMode' => \$cuff_mode,
              'threads=i' => \$num_threads,
              'max_genes=i' => \$max_genes,
              'bfly_opts=s' => \$bfly_opts,
@@ -69,11 +66,11 @@ if (-d "sim_AS_data" && -s "read_files.list") {
 else {
 
     ## generate the simulated reads:
-    my $cmd = "../../../trunk/util/misc/run_read_simulator_per_gene.pl $refSeqs_file $max_genes";
+    my $cmd = "$ENV{TRINITY_HOME}/util/misc/run_read_simulator_per_gene.pl $refSeqs_file $max_genes";
     &process_cmd($cmd);
     
     ## get list of reads
-    $cmd = "find sim_AS_data -regex \".\*reads.fa\" | tee read_files.list";
+    $cmd = "find sim_AS_data -regex \".\*.info\" | tee read_files.list";
     &process_cmd($cmd);
 }
 
@@ -89,23 +86,14 @@ foreach my $file (@read_files) {
     my $outdir = dirname($file);
     $outdir .= "/trinity_out_dir";
 
+    $file =~ s/\.info$//;
+
     if (-d $outdir) {
         print STDERR "-cleaning $outdir\n";
         `rm -rf $outdir`;
     }
     
-    my $cmd = "../../../trunk/Trinity.pl -o $outdir --single $file --seqType fa --JM 1G  --SS_lib_type F ";
-    
-    if ($cuff_mode || $bfly_opts) {
-        $cmd .= " --bfly_opts \"";
-        if ($bfly_opts) {
-            $cmd .= "$bfly_opts ";
-        }
-        if ($cuff_mode) {
-            $cmd .= " --cuffstyle_min_path_set ";
-        }
-        $cmd .= "\"";
-    }
+    my $cmd = "$ENV{TRINITY_HOME}/Trinity --output $outdir --left $file.left.fa --right $file.right.fa --seqType fa --max_memory 1G  --CPU 1 --SS_lib_type FR --trinity_complete --verbose ";
     
     print $ofh "$cmd\n";
     
@@ -123,7 +111,7 @@ if ($@) {
 }
 
 
-&process_cmd("find sim_AS_data/ -regex \".*allProbPaths.fasta\" | ../../../trunk/util/GG_trinity_accession_incrementer.pl > trin.fasta");
+#&process_cmd("find sim_AS_data/ -regex \".*allProbPaths.fasta\" | ../../../trunk/util/GG_trinity_accession_incrementer.pl > trin.fasta");
 
 print STDERR "Done. See trin.fasta\n";
 

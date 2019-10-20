@@ -1,3 +1,6 @@
+#!/usr/bin/env Rscript
+
+
 data = read.table("pairs.K25.stats", header=T, row.names=1)
 error_stats = read.table("errors_per_read.txt", row.names=1, header=F)
 
