@@ -286,7 +286,7 @@ sub execute_seq_pipe {
     &process_cmd("$ENV{TRINITY_HOME}/util/misc/print_kmers.pl $ref_trans_fa 24 > ref_kmers");
 
     
-    my $iworm_file = (-s "trinity_out_dir/inchworm.K25.L25.fa") ? "trinity_out_dir/inchworm.K25.L25.fa" : "trinity_out_dir/inchworm.K25.L25.DS.fa";
+    my $iworm_file = "trinity_out_dir/inchworm.fa";
     my $has_all_iworm_kmers = &check_inchworm_kmer_content($ref_trans_fa, $iworm_file);
 
 

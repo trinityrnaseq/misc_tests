@@ -44,13 +44,11 @@ my $usage = <<__EOUSAGE__;
 ####
 #  ** Mutate the reads
 #
-#  --read_mut_rate <float>              simulated read error rate (default: 0)  (value between 0 and 0.25 allowed)
+#  --read_error_rate <float>            simulated read error rate (default: 0)  (value between 0 and 0.25 allowed)
 #
-#  --ref_mut_insert_rate <float>        mutate insertions in the ref sequence (default: 0) ( values allowed 0<x<0.25)
+#  --ref_mutation_rate <float>               mutation rate in ref seq (default: 0) (values allowed 0<x<0.25)
 #
-#  --ref_mut_delete_rate <float>        mutate deletions in the ref sequence (default: 0)  ( values allowed 0<x<0.25)
-#
-#  --ref_mut_subst_rate <float>         mutate substitutions in ref seq (default: 0) (values allowed 0<x<0.25)
+#  --ref_fraction_indels <float>        mutate insertions/deletions in the ref sequence (default: 0) ( values allowed 0<x<0.25)
 #
 ############################################################################################
 
@@ -59,11 +57,10 @@ __EOUSAGE__
 
     ;
 
-my $READ_MUT_RATE = 0;
+my $READ_ERROR_RATE = 0;
 
-my $REF_MUT_INSERT_RATE = 0;
-my $REF_MUT_DELETE_RATE = 0;
-my $REF_MUT_SUBST_RATE = 0;
+my $REF_FRACTION_INDELS = 0;
+my $REF_MUTATION_RATE = 0;
 
 
 my $use_wgsim_flag = 0;
@@ -82,12 +79,11 @@ my $OUT_DIR;
               'read_length=i' => \$READ_LENGTH,
               'frag_length=i' => \$FRAG_LENGTH,
               
-              'read_mut_rate=f' => \$READ_MUT_RATE,
+              'read_error_rate=f' => \$READ_ERROR_RATE,
               
-              'ref_mut_insert_rate=f' => \$REF_MUT_INSERT_RATE,
-              'ref_mut_delete_rate=f' => \$REF_MUT_DELETE_RATE,
-              'ref_mut_subst_rate=f' => \$REF_MUT_SUBST_RATE,
-              
+              'ref_mutation_rate=f' => \$REF_MUTATION_RATE,
+              'ref_fraction_indels=f' => \$REF_FRACTION_INDELS,
+                            
               'wgsim' => \$use_wgsim_flag,
 
               'strand_specific' => \$strand_specific_flag,
@@ -142,11 +138,15 @@ main: {
             ;
         
         if ($strand_specific_flag) {
-            $cmd .= " --SS_lib_type FR ";
+            $cmd .= " -Z 1 "; # FR type
         }
 
-        ## todo: add mutation rate info
+        ## add mutation rate info
+        $cmd .= " -e $READ_ERROR_RATE "
+              . " -r $REF_MUTATION_RATE "
+              . " -R $REF_FRACTION_INDELS ";
         
+
     }
     else {
         
@@ -160,8 +160,8 @@ main: {
             . " --max_depth 4 --frag_length_step 200 "
             ;
         
-        if ($READ_MUT_RATE) {
-            $cmd .= " --error_rate $READ_MUT_RATE ";
+        if ($READ_ERROR_RATE) {
+            $cmd .= " --error_rate $READ_ERROR_RATE ";
         }
     }
     

@@ -16,7 +16,7 @@ ParaFly -c sim_reads.wgsim.cmds -CPU 1
 
 
 # run Trinity eval on wgsim reads
-find Seqs_dir/ -regex ".*reads.wgsim_R300_F500_D200_FR.info" | tee wgsim.info_files
+find Seqs_dir/ -regex ".*reads.wgsim_R300_F500_D200_SS.info" | tee wgsim.info_files
 
 $scriptdir/info_files_to_eval_cmds.pl  wgsim.info_files testdir --strict --strand_specific | tee wgsim.info_files.eval_cmds
 
